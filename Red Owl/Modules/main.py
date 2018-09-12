@@ -1,32 +1,22 @@
 import pandas as pd 
 import csv 
+import time 
 #modules for question 1
 from data_cleaning import place_names_in_original_and_cleaned_names_in_lists, replace_messy_names_w_cleaned_names, convert_names_to_lowercase, convert_unix_time_to_utc_time
-from senders import create_dictionary_of_senders_n_count_num_msgs
+from senders import create_dict_of_senders_n_count_num_msgs
 from recipients import count_messages_received_by_each_recipient, parse_recipients
-from senders_recipients import find_number_msgs_sent_received_by_person
+from senders_recipients import find_num_msgs_sent_received_by_person
 from collections import OrderedDict
-import gc
-import objgraph 
-
-import warnings
 import matplotlib.cbook
-
-from memory_profiler import profile
-import os
-import psutil
-process = psutil.Process(os.getpid())
 
 #module for question 2
 from plot import graph_top_senders
 
 #modules for question 3
+from recipients import collect_columns_n_rows_top_senders_in_recipient
+from senders_recipients import create_tuple_recipient_sender_time
+from plot import create_list_by_person_unique_num_msgs_unique_time, graph_top_senders_uni_messages_over_time
 
-
-#data preprocessing. add a header row for the column names. 
-
-
-@profile 
 def execute_procedure_for_question_1():
     #variables used
     list_of_dict_keys_for_num_msgs_sent_n_received_by_person = []
@@ -35,13 +25,14 @@ def execute_procedure_for_question_1():
 
     list_of_top_five_senders = []
 
-    #read in the dataset given and the dataset created for cleaning
+    #read in the dataset given and add headers
     df = pd.read_csv(r'enron-event-history-all.csv', names=['time', 'message_id', 'sender', 'recipients', 'topic', 'mode'])
 
-    df_dictionary_to_clean_names = pd.read_csv(r'Dictionary to clean names.csv')
+    #read in dataset created to clean the dataset given file
+    df_dict_to_clean_names = pd.read_csv(r'Dictionary to clean names.csv')
 
     #some sender names are not in a consistent format. placing sender names in original file as well as a cleanup name list into lists. lists are easier to work with then dataframes
-    list_of_names_in_original_file, list_of_cleaned_names = place_names_in_original_and_cleaned_names_in_lists(df_dictionary_to_clean_names)
+    list_of_names_in_original_file, list_of_cleaned_names = place_names_in_original_and_cleaned_names_in_lists(df_dict_to_clean_names)
 
     df = replace_messy_names_w_cleaned_names(df, list_of_names_in_original_file, list_of_cleaned_names)
 
@@ -51,40 +42,52 @@ def execute_procedure_for_question_1():
     #converting the time from milliseconds to date (without time). having just the date will make it easier to graph the data for questions 2 and 3
     df = convert_unix_time_to_utc_time(df, 'time')
 
-    #dictionary_senders_number_msgs_per_time will be used for question 2. 
-    dictionary_for_number_msgs_sent_by_sender, dictionary_senders_number_msgs_per_time, _ = create_dictionary_of_senders_n_count_num_msgs(df)
+    #dict_senders_number_msgs_per_time will be used for question 2. 
+    #list_of_senders_time will be used for question 3
+    dict_for_number_msgs_sent_by_sender, dict_senders_number_msgs_per_time, list_of_senders_time = create_dict_of_senders_n_count_num_msgs(df)
 
-    #sort by value in descending order. this will then be placed directly onto the CSV file
-    dictionary_for_number_msgs_sent_by_sender_descending = OrderedDict(sorted(dictionary_for_number_msgs_sent_by_sender.items(), key=lambda t: t[1], reverse=True))
+    #sort by value in descending order. this will then be placed directly onto the CSV file. we will also know who are the top 5 senders from sorting this first
+    dict_for_number_msgs_sent_by_sender_descending = OrderedDict(sorted(dict_for_number_msgs_sent_by_sender.items(), key=lambda t: t[1], reverse=True))
 
     dataframe_from_parse_recipients = parse_recipients(df)
-    dictionary_for_messages_received, _ = count_messages_received_by_each_recipient(dataframe_from_parse_recipients) 
+    dict_for_msgs_received_by_recipient = count_messages_received_by_each_recipient(dataframe_from_parse_recipients) 
 
-    #size of dictionary_for_messages_received is larger than size of dictionary_for_number_msgs_sent_by_sender_descending. need to union the keys of these two dictionaries
-    for key in dictionary_for_number_msgs_sent_by_sender_descending:
+    #size of dict_for_msgs_received_by_recipient is larger than size of dict_for_number_msgs_sent_by_sender_descending. need to union the keys of these two dictionaries
+    #the top 5 senders will be in this dictionary, so need to append the list with this dictionary first
+    for key in dict_for_number_msgs_sent_by_sender_descending:
         #getting the union of the keys in both dictionaries, so will only append if the key DOESN'T already exist in the list
         if key not in list_of_dict_keys_for_num_msgs_sent_n_received_by_person:
             list_of_dict_keys_for_num_msgs_sent_n_received_by_person.append(key)
 
-    for key in dictionary_for_messages_received:
+    for key in dict_for_msgs_received_by_recipient:
         if key not in list_of_dict_keys_for_num_msgs_sent_n_received_by_person:
             list_of_dict_keys_for_num_msgs_sent_n_received_by_person.append(key)
 
     #creates the file asked for Question 1 and returns a list of the top 5 senders for question 2
-    list_of_top_five_senders = find_number_msgs_sent_received_by_person(dictionary_for_number_msgs_sent_by_sender_descending, dictionary_for_messages_received, list_of_dict_keys_for_num_msgs_sent_n_received_by_person, number_of_senders_to_look)
+    list_of_top_five_senders = find_num_msgs_sent_received_by_person(dict_for_number_msgs_sent_by_sender_descending, dict_for_msgs_received_by_recipient, list_of_dict_keys_for_num_msgs_sent_n_received_by_person, number_of_senders_to_look)
 
-    
-    return list_of_top_five_senders, dictionary_senders_number_msgs_per_time
+    #return df for question 3
+    return list_of_top_five_senders, dict_senders_number_msgs_per_time, list_of_senders_time, df
 
-@profile 
-def execute_procedure_for_question_2(list_of_top_five_senders, dictionary_senders_number_msgs_per_time):
+#@profile 
+def execute_procedure_for_question_2(list_of_top_five_senders, dict_senders_number_msgs_per_time):
     #print(objgraph.show_most_common_types())
     #warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
     #procedures for Question 2
-    graph_top_senders(list_of_top_five_senders, dictionary_senders_number_msgs_per_time)
+    graph_top_senders(list_of_top_five_senders, dict_senders_number_msgs_per_time)
+
+
+def execute_procedure_for_question_3(df, list_of_top_five_senders):
+    #set the global variable, list_of_top_five_senders at the recipient module
+    recipient_dataframe, list_of_column_n_rows_w_top_senders = collect_columns_n_rows_top_senders_in_recipient(df, list_of_top_five_senders)
+    tuple_list_recipient_sender_time_sorted = create_tuple_recipient_sender_time(list_of_senders_time, recipient_dataframe, list_of_column_n_rows_w_top_senders, list_of_top_five_senders)
+    list_top_sender_uni_num_msgs_uni_time = create_list_by_person_unique_num_msgs_unique_time(list_of_top_five_senders, tuple_list_recipient_sender_time_sorted)
+    graph_top_senders_uni_messages_over_time(list_top_sender_uni_num_msgs_uni_time)
 
 
 if __name__ == "__main__":
-    list_of_top_five_senders, dictionary_senders_number_msgs_per_time = execute_procedure_for_question_1()
-    execute_procedure_for_question_2(list_of_top_five_senders, dictionary_senders_number_msgs_per_time)
+    list_of_top_five_senders, dict_senders_number_msgs_per_time, list_of_senders_time, df = execute_procedure_for_question_1()
+    execute_procedure_for_question_2(list_of_top_five_senders, dict_senders_number_msgs_per_time)
+    execute_procedure_for_question_3(df, list_of_top_five_senders)
+    
 
