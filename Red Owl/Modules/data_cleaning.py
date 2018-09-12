@@ -10,7 +10,9 @@ adjust_for_milliseconds = 1000
 add_to_list_names_original = lambda x: list_of_names_in_original_file.append(x) 
 add_to_list_cleaned_names = lambda x: list_of_cleaned_names.append(x) 
 to_lowercase = lambda x:x.lower()
-convert_time_readable = lambda x: datetime.datetime.fromtimestamp(int(x/adjust_for_milliseconds)).strftime('%Y-%m-%d')  #leaving out time so that the data is easier to visualize graphically
+#leaving out time so that the data is easier to visualize graphically. leaving out day also as too many unique days
+#slows down matplotlib when plotting
+convert_time_readable = lambda x: datetime.datetime.fromtimestamp(int(x/adjust_for_milliseconds)).strftime('%Y-%m')  
 
 
 def place_names_in_original_and_cleaned_names_in_lists(df_dictionary_to_clean_names):
