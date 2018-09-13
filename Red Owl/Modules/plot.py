@@ -38,7 +38,7 @@ def graph_top_senders(list_of_top_five_senders, dict_senders_number_msgs_per_tim
 def create_list_by_person_unique_num_msgs_unique_time(list_of_top_five_senders, tuple_list_recipient_sender_time_sorted):
     number_of_subplots = len(list_of_top_five_senders)
 
-    list_top_sender_uni_num_msgs_uni_time = []  #this will at the end look for example [(jeff dasovich, [3,4,2], [7/11/2001, 7/12/2001, 7/20/2001])]
+    list_top_sender_uni_num_msgs_uni_time = []  #this will at the end look like, for example [(jeff dasovich, [3,4,2], [7/11/2001, 7/12/2001, 7/20/2001])]
 
     for i in range(len(list_of_top_five_senders)):
         name_of_sender = list_of_top_five_senders[i]
@@ -56,7 +56,7 @@ def create_list_by_person_unique_num_msgs_unique_time(list_of_top_five_senders, 
  
         list_top_sender_uni_num_msgs_uni_time.append((name_of_sender, list(tmp_dict.values()), list(tmp_dict.keys())))
  
-        
+    print(list_top_sender_uni_num_msgs_uni_time)    
 
     return list_top_sender_uni_num_msgs_uni_time
 
