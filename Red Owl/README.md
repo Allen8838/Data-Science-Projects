@@ -15,7 +15,7 @@ The challenge for this exam is to write a script that will create one csv file a
 that needs to be created is a table with three columns: person, sent, and received. The sent and received columns are counts of how many
 emails were sent or received by a given person. The table will be sorted in descending order, based on the number of sent emails. 
 
-
+## Data Preprocessing 
 First part of my script involves adding headers to the file as well as cleaning the data. The cleaning is from a file called
 Dictionary to clean names.csv. Some of the sender's name in the original data file had multiple names for one person, e.g.
 mark legal taylor and mark taylor are the same person. The Dictionary to clean names.csv file has a column for the original names as presented
@@ -30,7 +30,8 @@ time as an axis. This was because the top sender had sent thousands of emails an
 to a list for later graphing took the program a long time. By rounding the dates to a month, I would be able to batch the dates together and
 passed in batched dates to the datetime object at once, speeding the process. 
 
-I then created a dictionar called dict_for_number_msgs_sent_by_sender. The resulting dictionary would look something like this for example:
+## Question 1
+I then created a dictionary called dict_for_number_msgs_sent_by_sender. The resulting dictionary would look something like this for example:
 {jeff dasovich:1000, sara shackleton: 900....}. This would be used for the sent column for question 1. At the same time, 
 
  
