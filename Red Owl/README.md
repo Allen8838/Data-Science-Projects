@@ -24,4 +24,8 @@ mark legal taylor or variations of this name will be transformed to mark taylor.
 get a correct count of emails sent. The same process has not been carried out in this script for the recipient's column but will be added
 later on. 
 
-
+I converted all sender's name to lowercase so names would be aligned when grouping. I also converted the unix time to regular time but kept
+only the year and the month. I initially included "day" in the time conversion but found that it was incredibly slow to plot a graph with 
+time as an axis. This was because the top sender had sent thousands of emails and converting each sent date to a datetime object and appending
+to a list for later graphing took the program a long time. By rounding the dates to a month, I would be able to batch the dates together and
+passed in batched dates to the datetime object at once, speeding the process.  
