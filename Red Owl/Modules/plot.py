@@ -16,13 +16,11 @@ def graph_top_senders(list_of_top_five_senders, dict_senders_number_msgs_per_tim
         date_array = []
         number_messages_array = []
         for num_messages_n_date in list_of_time:
-            #date = datetime.datetime.strptime(num_messages_n_date[1], '%Y-%m-%d')  #converting the date from a regular string to datetime object so that graph will plot
             date = num_messages_n_date[1].split(' ')[0]
             year = date.split('-')[0]
             month = date.split('-')[1]
             date_array.append(datetime.datetime(int(year), int(month), 1, 0))
             number_messages_array.append(num_messages_n_date[0])
-           # print(number_messages_array)
             axes = plt.subplot(number_of_subplots,1,i+1)
             axes.set_title('Emails sent over time by {}'.format(name_of_sender))
             axes.set_xlabel("Time in Month and Year")
@@ -55,8 +53,7 @@ def create_list_by_person_unique_num_msgs_unique_time(list_of_top_five_senders, 
                     tmp_dict[tuple_three[2]] += 1
  
         list_top_sender_uni_num_msgs_uni_time.append((name_of_sender, list(tmp_dict.values()), list(tmp_dict.keys())))
- 
-    print(list_top_sender_uni_num_msgs_uni_time)    
+
 
     return list_top_sender_uni_num_msgs_uni_time
 
