@@ -1,3 +1,13 @@
 #python
 .ipynb_checkpoints
 __pycache__
+.ipynb_checkpoints
+
+#input image to readme
+image_for_markdown.PNG
+
+#output
+file_for_question_1.csv
+Number of emails sent over time by the top 5 senders.PNG
+Unique emails received by top sender over time.PNG
+
