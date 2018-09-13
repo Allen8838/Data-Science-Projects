@@ -1,6 +1,7 @@
 The input data file is organized as follows
 
 
+
 there are approximately 200k plus rows of data. The topic column is always blank and mode is always email. Note that the headers were not in
 the original data file but displayed here for clarity. 
 
@@ -14,8 +15,8 @@ Dictionary to clean names.csv. Some of the sender's name in the original data fi
 mark legal taylor and mark taylor are the same person. The Dictionary to clean names.csv file has a column for the original names as presented
 in the original dataset and a column for the revised name that I will be using. Thus, from the above example, every instance of 
 mark legal taylor or variations of this name will be transformed to mark taylor. This will allow us to accurately group people's name and
-get a correct count of emails sent. The same process has not been carried out in this script for the recipient's column but will be added
-later on. 
+get a correct count of emails sent. The same process has been applied to the recipients column after I have separated each recipient's name
+by a pipe and assigned this expanded data into its own dataframe. 
 
 I converted all sender's name to lowercase so names would be aligned when grouping. I also converted the unix time to regular time but kept
 only the year and the month. I initially included "day" in the time conversion but found that it was incredibly slow to plot a graph with 
