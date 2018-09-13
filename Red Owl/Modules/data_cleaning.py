@@ -21,8 +21,14 @@ def place_names_in_original_and_cleaned_names_in_lists(df_dictionary_to_clean_na
     return list_of_names_in_original_file, list_of_cleaned_names
 
 
-def replace_messy_names_w_cleaned_names(df, list_of_names_in_original_file, list_of_cleaned_names):
-    df['sender'] = df['sender'].replace(list_of_names_in_original_file, list_of_cleaned_names)
+def replace_messy_names_w_cleaned_names(df, list_of_names_in_original_file, list_of_cleaned_names, specific_column=None):
+    #apply cleaning to all columns of dataframe
+    if specific_column == None:
+        for column in df:
+            df[column] = df[column].replace(list_of_names_in_original_file, list_of_cleaned_names)
+    #apply cleaning to only one column of dataframe
+    else:
+        df[specific_column] = df[specific_column].replace(list_of_names_in_original_file, list_of_cleaned_names)
 
     return df 
 
