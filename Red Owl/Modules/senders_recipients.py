@@ -25,10 +25,9 @@ def find_num_msgs_sent_received_by_person(dictionary_for_number_of_senders_desce
 
             writer.writerow((key, messages_sent, messages_received))
 
-
     return list_of_top_five_senders
 
-def create_tuple_recipient_sender_time(list_of_senders_time, recipient_dataframe_list, list_of_column_n_rows_w_top_senders, list_of_top_five_senders):
+def create_tuple_recipient_sender_time(list_of_senders_time, recipient_dataframe, list_of_column_n_rows_w_top_senders, list_of_top_five_senders):
     list_recipient_sender_time = []
 
     for column_row in list_of_column_n_rows_w_top_senders:
@@ -36,23 +35,27 @@ def create_tuple_recipient_sender_time(list_of_senders_time, recipient_dataframe
         row_list = column_row[1]
         for row in row_list:
             sender_time = list_of_senders_time[row]
-            recipient = recipient_dataframe_list.at[row, column]
+            recipient = recipient_dataframe.at[row, column]
             recipient_sender_time = (recipient,)+sender_time
             list_recipient_sender_time.append(recipient_sender_time)
 
     #create a set for list_recipient_sender_time in case a recipient received multiple emails from the same sender at the same time
     list_recipient_sender_time = list(set(list_recipient_sender_time))
 
-    tuple_list_recipient_sender_time_sorted = create_new_list_of_tuple_recipient_time_by_person(list_of_top_five_senders, list_recipient_sender_time)
-  
+    tuple_list_recipient_sender_time_sorted = sort_list_of_tuple_recipient_time_by_person(list_of_top_five_senders, list_recipient_sender_time)
+    
     return tuple_list_recipient_sender_time_sorted
 
 
-#will resort the list from above and group them first by how they appear in the list of top senders. this will make it easier when we loop through and plot later
-def create_new_list_of_tuple_recipient_time_by_person(list_of_top_five_senders, list_recipient_sender_time):
+#will re-sort the list from above and group them first by how they appear in the list of top senders. this will make it easier when we loop through and plot later
+def sort_list_of_tuple_recipient_time_by_person(list_of_top_five_senders, list_recipient_sender_time):
     tuple_list_recipient_sender_time_sorted = []
 
     for sender in list_of_top_five_senders:
-        tuple_list_recipient_sender_time_sorted.append([tuple_three for tuple_three in list_recipient_sender_time if tuple_three[0].startswith(sender)])    #appending this so that each top sender is in their own list, making it easier to iterate and create unique lists based on top senders in the procedure create_list_by_person_unique_num_msgs_unique_time
+        #appending this so that each top sender is in their own list, making it easier to iterate and create unique lists based on top senders in the 
+        #procedure create_list_by_person_unique_num_msgs_unique_time. since we are counting the top five senders, this will create 5 lists. 
+        #although there is an if startswith statement below, it doesn't really reduce our list_recipient_sender_time as we had initially filtered
+        #list of top senders in the recipients dataframe
+        tuple_list_recipient_sender_time_sorted.append([tuple_three for tuple_three in list_recipient_sender_time if tuple_three[0].startswith(sender)])    
 
     return tuple_list_recipient_sender_time_sorted
