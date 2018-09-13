@@ -1,12 +1,6 @@
 The input data file is organized as follows
 
----------------------------------------------|---------------------------------------------|---------------------------------------------|---------------------------------------------|---------------------------------------------|---------------------------------------------|
-| time                                       | message_id                                  | sender                                      | recipient                                   | topic                                       | mode                                        |
-
-| 896308260000 | <GKNWYZTKAVMKBCTMA3ZZSQIBITG5OD1KA@zlsvr22> | Christopher Behney | Toni P Schulenburg|mary hain  |       | email |
-
-| 909790980000 | <N5QXQ4CHS04FBSJO3TALWRBXATDTIWZ0B@zlsvr22> | mark legal taylor  | Marc.R.Cutler@BankAmerica.com |       | email |
-
+![Alt text](C:\Users\allen\Data Science Projects\Red Owl\Modules\image for markdown.png?raw=true "image for markdown")
 
 there are approximately 200k plus rows of data. The topic column is always blank and mode is always email. Note that the headers were not in
 the original data file but displayed here for clarity. 
