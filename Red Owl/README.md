@@ -32,6 +32,16 @@ passed in batched dates to the datetime object at once, speeding the process.
 
 ## Question 1
 I then created a dictionary called dict_for_number_msgs_sent_by_sender. The resulting dictionary would look something like this for example:
-{jeff dasovich:1000, sara shackleton: 900....}. This would be used for the sent column for question 1. At the same time, 
+{jeff dasovich:1000, sara shackleton: 900....}. This would be used for the sent column for question 1. At the same time, I created a dictionary
+called dict_senders_number_msgs_per_time and list_of_senders_time. The dictionary looks like 
+{jeff dasovich :[(1, '2002-06')], sara shackleton: [(2, '2002-11')]....} and the list is a list of tuple that looks as follows
+[(jeff dasovich , 2002-06), (sara shackleton, 2002-11)...]. The dictionary will be directly used for question two as it gives us the sender's
+name, and number of messages that was sent in a given period of time. 
+
+The list is created by going in the original dataset and making a tuple of both the sender and the time they sent a message. This will be useful for question 3, as I will expand the "recipients" column by parsing the
+column by pipes and creating a separate dataframe from that one column. I will then go through that dataframe, convert the value of each cell to
+"False" if the cell value is not one of the top 5 senders names and record the column and row address where the cell value is one of the
+top senders. Thus, a list of tuples for the sender and time is needed as I will need to associate this tuple with the relevant recipient
+and this also avoids having to go through the dataframe row by row, which is time expensive. 
 
  
