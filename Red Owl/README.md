@@ -30,7 +30,7 @@ I then created a dictionary called dict_for_number_msgs_sent_by_sender. The resu
 called dict_senders_number_msgs_per_time and list_of_senders_time. The dictionary looks like 
 {jeff dasovich :[(1, '2002-06')], sara shackleton: [(2, '2002-11')]....} and the list is a list of tuple that looks as follows
 [(jeff dasovich , 2002-06), (sara shackleton, 2002-11)...]. The dictionary will be directly used for question two as it gives us the sender's
-name, and number of messages that was sent in a given period of time. 
+name, and number of messages that were sent in a given period of time. 
 
 ***detour to explain reasoning for list_of_senders_time***
 The list is created by going in the original dataset and making a tuple of both the sender and the time they sent a message. This will be useful for question 3, as I will expand the "recipients" column by parsing the
