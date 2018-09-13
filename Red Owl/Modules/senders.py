@@ -24,7 +24,7 @@ def create_dict_of_senders_n_count_num_msgs(dataframe):
 
     #create a "dictionary" of counts instances of the same sender time pair
     #resulting dictionary will look something like e.g. ('trnews tr', '2002-11-30'): 1, ('hussey eudoramail', '2002-12-21'): 1}
-    count_senders_date_messages = Counter(tuple_pair for tuple_pair in list_of_senders_time)
+    count_senders_date_messages = Counter(tuple_pair for tuple_pair in unzipped_list_of_senders_time)
     #print(count_senders_date_messages)
 
     #count the number of messages per sender
@@ -34,5 +34,6 @@ def create_dict_of_senders_n_count_num_msgs(dataframe):
     #Need this dictionary for question 2
     for sender_time in count_senders_date_messages:
         dictionary_senders_number_msgs_per_time[sender_time[0]].append((count_senders_date_messages[sender_time], sender_time[1]))
+
     
     return dictionary_for_number_msgs_sent_by_sender, dictionary_senders_number_msgs_per_time, unzipped_list_of_senders_time
