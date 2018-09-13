@@ -14,7 +14,6 @@ to_lowercase = lambda x:x.lower()
 #slows down matplotlib when plotting
 convert_time_readable = lambda x: datetime.datetime.fromtimestamp(int(x/adjust_for_milliseconds)).strftime('%Y-%m')  
 
-
 def place_names_in_original_and_cleaned_names_in_lists(df_dictionary_to_clean_names):
     df_dictionary_to_clean_names['name in original file'].apply(add_to_list_names_original)
     df_dictionary_to_clean_names['cleaned name in new file'].apply(add_to_list_cleaned_names)
