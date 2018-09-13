@@ -1,12 +1,12 @@
 The input data file is organized as follows
 
-+--------------+---------------------------------------------+--------------------+-------------------------------+-------+-------+
+---------------|---------------------------------------------|--------------------|-------------------------------|-------|-------|
 | time         | message_id                                  | sender             | recipient                     | topic | mode  |
-+--------------+---------------------------------------------+--------------------+-------------------------------+-------+-------+
+
 | 896308260000 | <GKNWYZTKAVMKBCTMA3ZZSQIBITG5OD1KA@zlsvr22> | Christopher Behney | Toni P Schulenburg|mary hain  |       | email |
-+--------------+---------------------------------------------+--------------------+-------------------------------+-------+-------+
+
 | 909790980000 | <N5QXQ4CHS04FBSJO3TALWRBXATDTIWZ0B@zlsvr22> | mark legal taylor  | Marc.R.Cutler@BankAmerica.com |       | email |
-+--------------+---------------------------------------------+--------------------+-------------------------------+-------+-------+
+
 
 there are approximately 200k plus rows of data. The topic column is always blank and mode is always email. Note that the headers were not in
 the original data file but displayed here for clarity. 
@@ -28,4 +28,9 @@ I converted all sender's name to lowercase so names would be aligned when groupi
 only the year and the month. I initially included "day" in the time conversion but found that it was incredibly slow to plot a graph with 
 time as an axis. This was because the top sender had sent thousands of emails and converting each sent date to a datetime object and appending
 to a list for later graphing took the program a long time. By rounding the dates to a month, I would be able to batch the dates together and
-passed in batched dates to the datetime object at once, speeding the process.  
+passed in batched dates to the datetime object at once, speeding the process. 
+
+I then created a dictionar called dict_for_number_msgs_sent_by_sender. The resulting dictionary would look something like this for example:
+{jeff dasovich:1000, sara shackleton: 900....}. This would be used for the sent column for question 1. At the same time, 
+
+ 
