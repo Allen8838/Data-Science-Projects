@@ -38,10 +38,34 @@ called dict_senders_number_msgs_per_time and list_of_senders_time. The dictionar
 [(jeff dasovich , 2002-06), (sara shackleton, 2002-11)...]. The dictionary will be directly used for question two as it gives us the sender's
 name, and number of messages that was sent in a given period of time. 
 
+***detour to explain reasoning for list_of_senders_time***
 The list is created by going in the original dataset and making a tuple of both the sender and the time they sent a message. This will be useful for question 3, as I will expand the "recipients" column by parsing the
 column by pipes and creating a separate dataframe from that one column. I will then go through that dataframe, convert the value of each cell to
 "False" if the cell value is not one of the top 5 senders names and record the column and row address where the cell value is one of the
 top senders. Thus, a list of tuples for the sender and time is needed as I will need to associate this tuple with the relevant recipient
 and this also avoids having to go through the dataframe row by row, which is time expensive. 
 
+To finish explaining the rest of the logic for question 1, I sorted the dict_for_number_msgs_sent_by_sender based on who had sent the most messages.
+I then parsed the recipient dataframe by the pipe symbol to get each recipient into a cell and created a dictionary of the number of messages each recipient
+received, dict_for_msgs_received_by_recipient. For both the dict_for_number_msgs_sent_by_sender and dict_for_msgs_received_by_recipient, I placed
+the key, which is the person's name into a list to create a master list of names. I then created the csv file, by placing the name from the master
+list onto each row and asking the associated numbers from both dictionaries. 
+
+## Question 2
+From the dict_for_number_msgs_sent_by_sender created in part one, filter this list by the list of the top senders and graph. 
+
+## Question 3
+The first step to tackling this question was mentioned briefly in question 1 above. To reiterate, I parsed the recipients column by the pipe
+symbol so that each recipient's name was assigned to its own column and created a separate dataframe from the parsed results. From the resulting
+dataframe, I asked if each cell has the name in the list of top senders. If not, I would convert the cell value to "False". I would also
+record the column and row address if the cell value was a name in the list of top senders. I then created a list that had 5 inner lists (since
+I am counting only the top 5 senders). Each inner list is a tuple of the recipient (which was one of the top sender) the sender and the time. 
+From each inner list, I then performed a loop that kept track of whether a sender has been seen or not. If a sender has not been seen, 
+then the date and a count of the number of messages on that date would be tracked on a dictionary. This gave me list_top_sender_uni_num_msgs_uni_time,
+which looks as follows:
+
+[('jeff dasovich', [13, 40, 5, 32, 14, 43, 25, 5, 17, 11, 8, 33, 10, 40, 36, 5, 6, 4, 7, 5, 4, 4, 2, 3, 1, 2, 10, 3, 1, 2], ['2000-04', '2001-07', '1999-09', '2001-10', '2000-08', '2001-06', '2000-09', '2000-06', '2000-10', '2000-02', '1999-11', '2001-08', '1999-10', '2000-12', '2000-11', '2001-11', '1999-12', '2000-03', '2001-01', '2001-12', '2000-05', '2001-05', '2001-02', '2001-09', '2002-02', '2001-04', '2000-01', '2001-03', '2002-01', '2000-07']), ('sara shackleton', [18, 40, 7, 21, 35, 30, 19, 43, 31, 12, 46, 23, 22, 35, 18, 25, 8, 33, 10, 37, 33, 10, 35, 5, 9, 7, 26, 2, 10, 1, 3, 4, 11, 3, 1, 2, 2], ['2000-05', '2000-08', '2000-02', '2000-04', '2001-02', '2002-01', '2000-12', '2001-03', '2000-11', '2001-06', '2001-10', '2001-12', '2002-03', '2001-11', '2001-09', '2002-02', '1999-07', '2000-09', '1999-12', '2001-04', '2000-10', '1999-10', '2001-05', '2000-03', '2000-07', '1999-09', '2000-06', '2001-01', '2000-01', '2002-06', '2001-07', '1999-11', '1999-08', '1999-05', '2002-11', '1999-06', '2001-08']), ('pete davis', [2, 2, 1, 1, 1, 1, 1], ['2001-04', '2001-03', '2000-12', '2002-02', '2001-02', '2001-01', '2001-12']), ('chris germany', [27, 7, 18, 17, 23, 11, 14, 14, 22, 7, 13, 25, 6, 5, 3, 5, 26, 14, 6, 8, 5, 3, 2, 9, 7, 5, 2, 2, 5, 1, 2, 1], ['2001-10', '2000-01', '2001-11', '2002-03', '2002-05', '2001-06', '2002-02', '2000-03', '2001-05', '2000-04', '2002-01', '2002-04', '2000-09', '2000-07', '2001-02', '2000-02', '2002-06', '2000-11', '2001-01', '2001-08', '1999-12', '2001-12', '2001-09', '2000-12', '2000-10', '2000-06', '2001-03', '2001-04', '2000-05', '1999-08', '2000-08', '2001-07']), ('notes', [11, 8, 6, 5, 12, 2, 5, 19, 17, 2, 3, 12, 17, 2, 1, 1], ['2001-07', '2001-03', '2001-12', '2001-09', '2002-01', '2002-02', '2001-08', '2001-10', '2001-11', '2001-01', '2001-04', '2001-05', '2001-06', '2001-02', '2002-11', '2000-11'])]
  
+For example, this is saying that jeff dasovich recieved 13 emails on 2000-04. 
+
+This result is then plotted. 
