@@ -1,10 +1,5 @@
 The input data file is organized as follows
 
-<<<<<<< HEAD
-
-=======
-![Alt text](C:\Users\allen\Data Science Projects\Red Owl\Modules\image for markdown.png?raw=true "image for markdown")
->>>>>>> ccebb7603c99ac131de5a78c00cdd182fdf98b16
 
 there are approximately 200k plus rows of data. The topic column is always blank and mode is always email. Note that the headers were not in
 the original data file but displayed here for clarity. 
