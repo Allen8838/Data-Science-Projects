@@ -1,6 +1,6 @@
 The input data file is organized as follows
 
-
+![](Images/image_for_markdown.PNG)
 
 there are approximately 200k plus rows of data. The topic column is always blank and mode is always email. Note that the headers were not in
 the original data file but displayed here for clarity. 
