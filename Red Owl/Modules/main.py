@@ -44,7 +44,7 @@ def execute_procedure_for_question_1():
     #sort by value in descending order. this will then be placed directly onto the CSV file. we will also know who are the top 5 senders from sorting this first
     dict_for_number_msgs_sent_by_sender_descending = OrderedDict(sorted(dict_for_number_msgs_sent_by_sender.items(), key=lambda t: t[1], reverse=True))
 
-    dataframe_from_parse_recipients = helper_function_for_question_1(df, list_of_names_in_original_file, list_of_cleaned_names)
+    dataframe_from_parse_recipients = helper_function_clean_dataframe_from_parse_recipients(df, list_of_names_in_original_file, list_of_cleaned_names)
     
     dict_for_msgs_received_by_recipient = count_messages_received_by_each_recipient(dataframe_from_parse_recipients) 
 
@@ -68,7 +68,7 @@ def execute_procedure_for_question_1():
 
 #perform datacleaning of dataframe_from_parse_recipients. should speed up execution of
 #question 1 as the memory generated from this helper function will be released upon exit of the function
-def helper_function_for_question_1(dataframe, list_of_names_in_original_file, list_of_cleaned_names):
+def helper_function_clean_dataframe_from_parse_recipients(dataframe, list_of_names_in_original_file, list_of_cleaned_names):
     dataframe_from_parse_recipients = parse_recipients(dataframe)
 
     #loop through each cell in the dataframe_from_parse_recipients and clean the names like what was done above
