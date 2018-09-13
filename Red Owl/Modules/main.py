@@ -26,7 +26,7 @@ def execute_procedure_for_question_1():
     #read in the dataset given and add headers
     df = pd.read_csv(r'enron-event-history-all.csv', names=['time', 'message_id', 'sender', 'recipients', 'topic', 'mode'])
     #read in dataset created to clean the dataset given file
-    df_dict_to_clean_names = pd.read_csv(r'Dictionary to clean names.csv')
+    df_dict_to_clean_names = pd.read_csv(r'Dictionary-to-clean-names.csv')
 
     #some sender names are not in a consistent format. placing sender names in original file as well as a cleanup name list into lists. lists are easier to work with then dataframes
     list_of_names_in_original_file, list_of_cleaned_names = place_names_in_original_and_cleaned_names_in_lists(df_dict_to_clean_names)
@@ -44,17 +44,7 @@ def execute_procedure_for_question_1():
     #sort by value in descending order. this will then be placed directly onto the CSV file. we will also know who are the top 5 senders from sorting this first
     dict_for_number_msgs_sent_by_sender_descending = OrderedDict(sorted(dict_for_number_msgs_sent_by_sender.items(), key=lambda t: t[1], reverse=True))
 
-    dataframe_from_parse_recipients = parse_recipients(df)
-
-    #loop through each cell in the dataframe_from_parse_recipients and clean the names like what was done above
-    #add headers to the dataframe first
-    number_of_columns = len(dataframe_from_parse_recipients.columns)
-
-    column_indexes = create_column_headers(number_of_columns)
-    dataframe_from_parse_recipients.reset_index()
-    dataframe_from_parse_recipients.columns = column_indexes
-
-    dataframe_from_parse_recipients = replace_messy_names_w_cleaned_names(dataframe_from_parse_recipients, list_of_names_in_original_file, list_of_cleaned_names)
+    dataframe_from_parse_recipients = helper_function_for_question_1(df, list_of_names_in_original_file, list_of_cleaned_names)
     
     dict_for_msgs_received_by_recipient = count_messages_received_by_each_recipient(dataframe_from_parse_recipients) 
 
@@ -76,6 +66,22 @@ def execute_procedure_for_question_1():
     #return list_of_senders_time and dataframe_from_parse_recipients for question 3
     return list_of_top_five_senders, dict_senders_number_msgs_per_time, list_of_senders_time, dataframe_from_parse_recipients
 
+#perform datacleaning of dataframe_from_parse_recipients. should speed up execution of
+#question 1 as the memory generated from this helper function will be released upon exit of the function
+def helper_function_for_question_1(dataframe, list_of_names_in_original_file, list_of_cleaned_names):
+    dataframe_from_parse_recipients = parse_recipients(dataframe)
+
+    #loop through each cell in the dataframe_from_parse_recipients and clean the names like what was done above
+    #add headers to the dataframe first
+    number_of_columns = len(dataframe_from_parse_recipients.columns)
+
+    column_indexes = create_column_headers(number_of_columns)
+    dataframe_from_parse_recipients.reset_index()
+    dataframe_from_parse_recipients.columns = column_indexes
+
+    dataframe_from_parse_recipients = replace_messy_names_w_cleaned_names(dataframe_from_parse_recipients, list_of_names_in_original_file, list_of_cleaned_names)
+
+    return dataframe_from_parse_recipients
 
 def execute_procedure_for_question_2(list_of_top_five_senders, dict_senders_number_msgs_per_time):
     graph_top_senders(list_of_top_five_senders, dict_senders_number_msgs_per_time)
