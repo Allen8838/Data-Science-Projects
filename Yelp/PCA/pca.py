@@ -43,7 +43,7 @@ def cluster_by_kmeans(documents_train):
 
     cluster_pred = kmeans.predict(reviews)
 
-    key10 = np.argsort(kmeans.cluster_centers_cluster_ ,1)[:,-1:-11:-1]
+    key10 = np.argsort(kmeans.cluster_centers_,1)[:,-1:-11:-1]
 
     #inspect the top 10 features for each cluster
     #type(key10)
