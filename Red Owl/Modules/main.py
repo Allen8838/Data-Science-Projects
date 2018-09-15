@@ -1,6 +1,8 @@
 import pandas as pd 
 import csv 
 import time 
+from multiprocessing import Pool
+import numpy as np 
 #modules for question 1
 from data_cleaning import place_names_in_original_and_cleaned_names_in_lists, replace_messy_names_w_cleaned_names, convert_names_to_lowercase, convert_unix_time_to_utc_time
 from senders import create_dict_of_senders_n_count_num_msgs
@@ -68,9 +70,9 @@ def execute_procedure_for_question_1():
 
 #perform datacleaning of dataframe_from_parse_recipients. should speed up execution of
 #question 1 as the memory generated from this helper function will be released upon exit of the function
-def helper_function_clean_dataframe_from_parse_recipients(dataframe, list_of_names_in_original_file, list_of_cleaned_names):
-    dataframe_from_parse_recipients = parse_recipients(dataframe)
 
+def helper_function_clean_dataframe_from_parse_recipients(dataframe, list_of_names_in_original_file, list_of_cleaned_names):
+    dataframe_from_parse_recipients = parallel_dataframe_processing(dataframe)
     #loop through each cell in the dataframe_from_parse_recipients and clean the names like what was done above
     #add headers to the dataframe first
     number_of_columns = len(dataframe_from_parse_recipients.columns)
@@ -82,6 +84,17 @@ def helper_function_clean_dataframe_from_parse_recipients(dataframe, list_of_nam
     dataframe_from_parse_recipients = replace_messy_names_w_cleaned_names(dataframe_from_parse_recipients, list_of_names_in_original_file, list_of_cleaned_names)
 
     return dataframe_from_parse_recipients
+
+def parallel_dataframe_processing(dataframe, partitions=10, processes=4):
+    pool = Pool(processes)
+    #split the dataframe into partitions, row-wise as we are only apply the function to one column
+    dataframe_split = np.array_split(dataframe, partitions, axis=0)
+    dataframe = pd.concat(pool.map(parse_recipients, dataframe_split))
+    pool.close()
+    pool.join()
+
+    return dataframe
+
 
 def execute_procedure_for_question_2(list_of_top_five_senders, dict_senders_number_msgs_per_time):
     graph_top_senders(list_of_top_five_senders, dict_senders_number_msgs_per_time)
@@ -95,8 +108,10 @@ def execute_procedure_for_question_3(list_of_top_five_senders, list_of_senders_t
 
 
 if __name__ == "__main__":
+    tic = time.time()
     list_of_top_five_senders, dict_senders_number_msgs_per_time, list_of_senders_time, dataframe_from_parse_recipients = execute_procedure_for_question_1()
     execute_procedure_for_question_2(list_of_top_five_senders, dict_senders_number_msgs_per_time)
     execute_procedure_for_question_3(list_of_top_five_senders, list_of_senders_time, dataframe_from_parse_recipients)
-    
+    toc = time.time()   
+    print(toc-tic) 
 
