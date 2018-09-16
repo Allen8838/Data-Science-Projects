@@ -72,7 +72,8 @@ def execute_procedure_for_question_1():
 #question 1 as the memory generated from this helper function will be released upon exit of the function
 
 def helper_function_clean_dataframe_from_parse_recipients(dataframe, list_of_names_in_original_file, list_of_cleaned_names):
-    dataframe_from_parse_recipients = parallel_dataframe_processing(dataframe)
+    #dataframe_from_parse_recipients = parse_recipients(dataframe)
+    dataframe_from_parse_recipients = parallel_dataframe_processing(dataframe, parse_recipients, 30, 8, 0, True, False, None)
     #loop through each cell in the dataframe_from_parse_recipients and clean the names like what was done above
     #add headers to the dataframe first
     number_of_columns = len(dataframe_from_parse_recipients.columns)
@@ -81,17 +82,28 @@ def helper_function_clean_dataframe_from_parse_recipients(dataframe, list_of_nam
     dataframe_from_parse_recipients.reset_index()
     dataframe_from_parse_recipients.columns = column_indexes
 
+    list_name_original_cleaned_names = zip(list_of_names_in_original_file, list_of_cleaned_names)
+
+    #dataframe_from_parse_recipients = parallel_dataframe_processing(dataframe_from_parse_recipients, replace_messy_names_w_cleaned_names, 10, 4, 0, False, True, list_name_original_cleaned_names)
     dataframe_from_parse_recipients = replace_messy_names_w_cleaned_names(dataframe_from_parse_recipients, list_of_names_in_original_file, list_of_cleaned_names)
 
     return dataframe_from_parse_recipients
 
-def parallel_dataframe_processing(dataframe, partitions=10, processes=4):
+def parallel_dataframe_processing(dataframe, function_for_parallel, partitions=10, processes=4, axis=None, map_func=None, starmap_func=None, add_arguments=None):
     pool = Pool(processes)
     #split the dataframe into partitions, row-wise as we are only apply the function to one column
-    dataframe_split = np.array_split(dataframe, partitions, axis=0)
-    dataframe = pd.concat(pool.map(parse_recipients, dataframe_split))
-    pool.close()
-    pool.join()
+    if map_func == True:
+        dataframe_split = np.array_split(dataframe, partitions, axis=axis)
+        dataframe = pd.concat(pool.map(function_for_parallel, dataframe_split))
+        pool.close()
+        pool.join()
+
+    #split the dataframe by columns
+    if starmap_func == True:
+        dataframe_split = np.array_split(dataframe, partitions, axis=axis)
+        dataframe = pd.concat(pool.starmap(function_for_parallel, add_arguments, dataframe_split))
+        pool.close()
+        pool.join()
 
     return dataframe
 
