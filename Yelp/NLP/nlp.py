@@ -33,8 +33,16 @@ def create_dataset(df, column):
     # outfile = open(filename, 'wb')
     # pickle.dump(documents, outfile)
     # outfile.close()
-
-    documents = df[column]
+    dataframe_review_unpacked = df[column].compute()
+    documents = [review for review in dataframe_review_unpacked.values]
+    print(documents[1])
+    #documents = [t for i,t in enumerate(df[column])]
+    
+    
+    # documents = df[column]
+    # documents.compute()
+    #print(documents[1])
+    #print(type(documents.head(1)))
 
     return documents
 
@@ -84,8 +92,10 @@ def transform_vectorizer_to_array(dataset_test):
 
 @profile 
 def create_nlp_rep_of_train_test(dataset_train, dataset_test):
-    
-    
+    #change the dask dataframes to pandas dataframes
+    dataset_train = dataset_train.compute()
+    dataset_test = dataset_test.compute()
+
     # Create TfidfVectorizer, and name it vectorizer
     vectorizer = TfidfVectorizer(stop_words = 'english', max_features=5000)
 
@@ -151,10 +161,10 @@ if __name__ == '__main__':
     #documents = pickle.load(infile)
     
 
-    dataset_train, dataset_test = create_training_test_set(df)
-    df = None
-    gc.collect()
-    vectors_train, words, vectors_test = create_nlp_rep_of_train_test(dataset_train, dataset_test)
-    doc_test, searched_result = find_similar_reviews(dataset_train, dataset_test, vectors_train, 5)
-    print(doc_test)
-    print(searched_result)
+    # dataset_train, dataset_test = create_training_test_set(df)
+    # df = None
+    # gc.collect()
+    # vectors_train, words, vectors_test = create_nlp_rep_of_train_test(dataset_train, dataset_test)
+    # doc_test, searched_result = find_similar_reviews(dataset_train, dataset_test, vectors_train, 5)
+    # print(doc_test)
+    # print(searched_result)
