@@ -6,13 +6,23 @@ from scipy import sparse
 from sklearn.metrics.pairwise import cosine_similarity
 import time
 
+def create_initial_conditions(filepath):
+    df = pd.read_csv(filepath)
 
-df = pd.read_csv('../Data_Preprocessing/restaurant_n_reviews.csv')
+    #select certain columns from dataframe
+    df_utility = pd.pivot_table(data=df, values='stars', index='user_id', columns='business_id', fill_value=0)
 
-#select certain columns from dataframe
-df_utility = pd.pivot_table(data=df, values='stars', index='user_id', columns='business_id', fill_value=0)
+    df.utility_info()
 
-df.utility_info()
+    df.set_index('user_id', inplace=True)
+    utility_mat = df_utility.as_matrix()
+    item_sim_mat = cosine_similarity(utility_mat.T)
+    least_to_most_sim_indexes = np.argsort(item_sim_mat, axis=1)
+    neighborhood_size = 75
+    neighborhoods = least_to_most_sim_indexes[:, -neighborhood_size:]
+
+    return df, df_utility, item_sim_mat, neighborhood_size, neighborhoods
+
 
 def create_recommendations(df, df_utility, n, pred_ratings, utility_mat):
     businesses_to_recommend = []
@@ -56,6 +66,11 @@ def find_ratings_of_a_user(user_id, utility_mat, item_sim_mat):
     pred_ratings = np.nan_to_num(out)
 
     return out[~np.isnan(out)], pred_ratings
+
+if __name__ == '__main__':
+    df, df_utility, item_sim_mat, neighborhood_size, neighborhoods = create_initial_conditions('../Data_Preprocessing/restaurant_n_reviews.csv')
+    output_not_nan, pred_ratings = find_ratings_of_a_user(user_id, utility_mat, item_sim_mat)
+    businesses_to_recommend = create_recommendations(df, df_utility, n, pred_ratings, utility_mat)  
 
 
 
