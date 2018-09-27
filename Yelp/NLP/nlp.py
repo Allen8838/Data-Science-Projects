@@ -27,33 +27,13 @@ def read_data_n_create_histo(filepath):
     return df
 
 @profile 
-def create_dataset(df, column):
-    #using iterrows for now. tried to use enumerate to get each text value but received a not implemented error
-    # documents = [row.text for i, row in enumerate(df.itertuples(), 1)]
-    # filename = 'review documents'
-    # outfile = open(filename, 'wb')
-    # pickle.dump(documents, outfile)
-    # outfile.close()
-    
-    # #documents = [t for i,t in enumerate(df[column])]
-    
-    
+def create_dataset(df, column):    
     documents = df[column]
-    # documents.compute()
-    #print(documents[1])
-    #print(type(documents.head(1)))
-
-    # dataframe_review_unpacked = df[column].compute()
-    # documents = [review for review in dataframe_review_unpacked.values]
-    # print(documents[1])
 
     return documents
 
 @profile 
 def create_training_test_set(df):
-    # dataset = dataset.compute()
-    # target = target.compute()
-
     #page 17 of dask documentation
     df_train, df_test = df.random_split([0.8, 0.2], random_state=2)
 
@@ -64,23 +44,6 @@ def create_training_test_set(df):
 
     gc.collect()
     return documents_train, documents_test, target_train, target_test
-
-@profile 
-def find_similar_reviews(vectorizer, dataset_train, dataset_test, vectors_train, n):
-    # Draw an arbitrary review from test (unseen in training) documents# Draw a 
-    #hardcoding this for now. using randint returned memoryerror
-    dataset_train, dataset_test = dask.compute(dataset_train, dataset_test)
-    dataset_train = [review for review in dataset_train.values]
-    dataset_test = [review for review in dataset_test.values]
-    doc_test = dataset_test[1]
-    #doc_test = dataset_test[np.random.randint(len(dataset_test))]
-    # Transform the drawn review(s) to vector(s)
-    doc_test_vector = vectorizer.transform([doc_test]).toarray()
-    # Calculate the similarity score(s) between vector(s) and training vectors
-    similarity_scores = cosine_similarity(doc_test_vector, vectors_train.toarray())
-    #search for n similar reviews
-    searched_result = get_top_values(similarity_scores[0], n, dataset_train)
-    return doc_test, searched_result
 
 def process_vector_transform_parallel(dataset, function_for_parallel, partitions, processes, axis, arguments):
     pool = Pool(processes)
@@ -94,12 +57,12 @@ def process_vector_transform_parallel(dataset, function_for_parallel, partitions
 
 
 def transform_vectorizer_to_array(dataset_test):
-    vectors_test = TfidfVectorizer(stop_words = 'english', max_features=5000).transform(dataset_test).to_array()
+    vectors_test = TfidfVectorizer(stop_words = 'english', max_features=1000).transform(dataset_test).to_array()
     return vectors_test
 
 
 @profile 
-def create_nlp_rep_of_train_test(dataset_train, dataset_test):
+def create_nlp_rep_of_train_test(dataset_train, dataset_test, n):
     #change the dask dataframes to pandas dataframes
     dataset_train, dataset_test = dask.compute(dataset_train, dataset_test)
     #print(dataset_train._is_mixed_type)
@@ -107,7 +70,7 @@ def create_nlp_rep_of_train_test(dataset_train, dataset_test):
     dataset_test = [review for review in dataset_test.values]
 
     # Create TfidfVectorizer, and name it vectorizer
-    vectorizer = TfidfVectorizer(stop_words = 'english', max_features=5000)
+    vectorizer = TfidfVectorizer(stop_words = 'english', max_features=1000)
 
     # Train the model with your training data
     vectors_train = vectorizer.fit_transform(dataset_train)
@@ -119,7 +82,20 @@ def create_nlp_rep_of_train_test(dataset_train, dataset_test):
     #vectors_test = process_vector_transform_parallel(dataset_test, transform_vectorizer_to_array, 10, 6, 0, vectorizer)
     vectors_test = vectorizer.transform(dataset_test).toarray() 
 
-    return vectorizer, vectors_train, words, vectors_test
+    doc_test = dataset_test[1]
+
+    #doc_test = dataset_test[np.random.randint(len(dataset_test))]
+    # Transform the drawn review(s) to vector(s)
+    doc_test_vector = vectorizer.transform([doc_test]).toarray()
+    # Calculate the similarity score(s) between vector(s) and training vectors
+    similarity_scores = cosine_similarity(doc_test_vector, vectors_train.toarray())
+    #search for n similar reviews
+    searched_result = get_top_values(similarity_scores[0], n, dataset_train)
+
+    return doc_test, searched_result
+
+
+
 
 @profile 
 def get_top_values(lst, n, labels):
@@ -174,7 +150,6 @@ if __name__ == '__main__':
     documents_train, documents_test, target_train, target_test = create_training_test_set(df)
     df = None
     gc.collect()
-    vectorizer, vectors_train, words, vectors_test = create_nlp_rep_of_train_test(documents_train, documents_test)
-    doc_test, searched_result = find_similar_reviews(vectorizer, documents_train, documents_test, vectors_train, 5)
+    doc_test, searched_result = create_nlp_rep_of_train_test(documents_train, documents_test, 5)
     print(doc_test)
     print(searched_result)
