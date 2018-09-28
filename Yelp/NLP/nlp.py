@@ -11,6 +11,7 @@ from multiprocessing import Pool
 import gc
 import pickle 
 from dask_ml.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
 
 @profile
 def read_data_n_create_histo(filepath):
@@ -75,13 +76,17 @@ def create_nlp_rep_of_train_test(dataset_train, dataset_test, n):
     # Train the model with your training data
     vectors_train = vectorizer.fit_transform(dataset_train)
 
-    # Get the vocab of your tfidf
-    words = vectorizer.get_feature_names()
-
     # Use the trained model to transform your test data
     #vectors_test = process_vector_transform_parallel(dataset_test, transform_vectorizer_to_array, 10, 6, 0, vectorizer)
     vectors_test = vectorizer.transform(dataset_test).toarray() 
 
+    # Get the vocab of your tfidf
+    words = vectorizer.get_feature_names()
+
+    return dataset_test, vectors_train, vectors_test
+
+def find_cosine_similarity_score(dataset_test, vectors_train):
+    
     doc_test = dataset_test[1]
 
     #doc_test = dataset_test[np.random.randint(len(dataset_test))]
@@ -89,13 +94,17 @@ def create_nlp_rep_of_train_test(dataset_train, dataset_test, n):
     doc_test_vector = vectorizer.transform([doc_test]).toarray()
     # Calculate the similarity score(s) between vector(s) and training vectors
     similarity_scores = cosine_similarity(doc_test_vector, vectors_train.toarray())
-    #search for n similar reviews
-    searched_result = get_top_values(similarity_scores[0], n, dataset_train)
 
-    return doc_test, searched_result
+    return similarity_scores
 
 
+def build_logistic_regression(vectors_train, target_train):
+    vectors_train = vectors_train.toarray()
 
+    lg = LogisticRegression()
+    lg.fit(vectors_train, target_train)
+
+    return lg 
 
 @profile 
 def get_top_values(lst, n, labels):
@@ -135,21 +144,25 @@ def get_bottom_values(lst, n, labels):
 
 if __name__ == '__main__':
     df = read_data_n_create_histo('../Data_Preprocessing/restaurant_n_reviews.csv')
-    # df.info(memory_usage='deep')
-    # for dtype in ['float','int','object']:
-    #     selected_dtype = df.select_dtypes(include=[dtype])
-    #     mean_usage_b = selected_dtype.memory_usage(deep=True).mean()
-    #     mean_usage_mb = mean_usage_b / 1024 ** 2
-    #     print("Average memory usage for {} columns: {:03.2f} MB".format(dtype,mean_usage_mb))
-
     documents = create_dataset(df, 'text')
+    
+    filename = "review documents"
+    fileObject = open(filename, 'wb')
+    pickle.dump(documents, fileObject)
+    fileObject.close()
+
     #infile = open('review documents', 'rb')
     #documents = pickle.load(infile)
-    
 
     documents_train, documents_test, target_train, target_test = create_training_test_set(df)
     df = None
     gc.collect()
-    doc_test, searched_result = create_nlp_rep_of_train_test(documents_train, documents_test, 5)
+    doc_test, vectors_train, words = create_nlp_rep_of_train_test(documents_train, documents_test, 5)
+    #search for n similar reviews
+    searched_result = get_top_values(similarity_scores[0], n, dataset_train)
+
     print(doc_test)
     print(searched_result)
+    lg = build_logistic_regression(vectors_train, target_train)
+    get_top_values(lg.coef_[0], n, words)
+    get_bottom_values(lg.coef_[0], n, words)
