@@ -130,13 +130,35 @@ if __name__ == "__main__":
     # plt.savefig('Density_Plot_of_Trip_Duration_by_PassCount-0-2.png')
 
     """Find all correlations with trip_duration and sort"""
-    #one hot encode the flag column first
+    """Feature Engineering with Dates"""
+    
+    
+    # #one hot encode the flag column first
     df = pd.get_dummies(df, columns=["store_and_fwd_flag"])
     #feature engineering with datetime objects
+    #split data from time for pickup and dropoff datetime object
     
-    
-    
-    correlations_data = df.corr()['trip_duration'].sort_values()
+    #convert pickup_date and dropoff_date to datetime objects
+    df['pickup_datetime'] =  pd.to_datetime(df['pickup_datetime'])
+    #using normalize even though it gives us 0:00 time, but the resulting column is a datetime object, which allows us to further process
+    #for day of week
+    df['pickup_date'] = df['pickup_datetime'].dt.normalize()
+    df['pickup_time'] = df['pickup_datetime'].dt.time
 
-    correlations_data.to_csv("correlation_data.csv")
+    df['dropoff_datetime'] =  pd.to_datetime(df['dropoff_datetime'])
+    df['dropoff_date'] = df['dropoff_datetime'].dt.normalize()
+    df['dropoff_time'] = df['dropoff_datetime'].dt.time
+    
+    #create day of the week for both pickup date and dropoff dates
+    df['pickup_day_of_week'] = df['pickup_date'].dt.day_name()
+
+    df['dropoff_day_of_week'] = df['dropoff_date'].dt.day_name()
+
+    #one hot encode day of the week for both pickup and dropoff
+    df = pd.get_dummies(df, columns=['pickup_day_of_week', 'dropoff_day_of_week'])
+    
+    print(df.head())
+    # correlations_data = df.corr()['trip_duration'].sort_values()
+
+    # correlations_data.to_csv("correlation_data.csv")
 
