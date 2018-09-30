@@ -140,24 +140,36 @@ if __name__ == "__main__":
     
     #convert pickup_date and dropoff_date to datetime objects
     df['pickup_datetime'] =  pd.to_datetime(df['pickup_datetime'])
+    df['dropoff_datetime'] =  pd.to_datetime(df['dropoff_datetime'])
+
+    #round both pickup and dropoff time to the latest 15 min before applying sin and cos functions to them
+    #assuming that hours will matter, not minutes and want to get to the closest hour
+    df['pickup_datetime_rounded_15_min'] = df['pickup_datetime'].dt.round('15min')
+    df['dropoff_datetime_rounded_15_min'] = df['dropoff_datetime'].dt.round('15min')
+
+    df['rounded_pickup_time_hour'] = pd.to_datetime(df['pickup_datetime_rounded_15_min']).dt.hour 
+    df['rounded_dropoff_time_hour'] = pd.to_datetime(df['dropoff_datetime_rounded_15_min']).dt.hour 
+
+
+    #split datetime between dates and time
     #using normalize even though it gives us 0:00 time, but the resulting column is a datetime object, which allows us to further process
     #for day of week
-    df['pickup_date'] = df['pickup_datetime'].dt.normalize()
-    df['pickup_time'] = df['pickup_datetime'].dt.time
+    df['pickup_date'] = df['pickup_datetime_rounded_15_min'].dt.normalize()
+    df['pickup_time'] = df['pickup_datetime_rounded_15_min'].dt.time
 
-    df['dropoff_datetime'] =  pd.to_datetime(df['dropoff_datetime'])
-    df['dropoff_date'] = df['dropoff_datetime'].dt.normalize()
-    df['dropoff_time'] = df['dropoff_datetime'].dt.time
+    
+    df['dropoff_date'] = df['dropoff_datetime_rounded_15_min'].dt.normalize()
+    df['dropoff_time'] = df['dropoff_datetime_rounded_15_min'].dt.time
     
     #create day of the week for both pickup date and dropoff dates
-    df['pickup_day_of_week'] = df['pickup_date'].dt.day_name()
+    df['pickup_day_of_week'] = df['pickup_datetime_rounded_15_min'].dt.day_name()
 
-    df['dropoff_day_of_week'] = df['dropoff_date'].dt.day_name()
+    df['dropoff_day_of_week'] = df['dropoff_datetime_rounded_15_min'].dt.day_name()
 
     #one hot encode day of the week for both pickup and dropoff
     df = pd.get_dummies(df, columns=['pickup_day_of_week', 'dropoff_day_of_week'])
-    
-    print(df.head())
+
+    df.head(10000).to_csv('dataframe_w_datetime_feature_engineering.csv')
     # correlations_data = df.corr()['trip_duration'].sort_values()
 
     # correlations_data.to_csv("correlation_data.csv")
