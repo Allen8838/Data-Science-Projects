@@ -1,4 +1,5 @@
 """main module to run submodules"""
+import sys
 import time 
 from multiprocessing import Pool
 from collections import OrderedDict
@@ -12,18 +13,18 @@ from recipients import cnt_msgs_recvd_by_each_recip, create_column_headers, coll
 from senders_recipients import find_top_senders, create_recip_sender_time
 from plot import graph_top_senders, find_uni_num_msgs_uni_time_per, graph_tsenders_uni_msgs
 
-def exec_q1():
+def exec_q1(csv_file):
     """clean data first, create file for question 1 and 
     create intermediary values for questions 2 and 3"""
     number_of_senders_to_look = 5
 
     #read in the dataset given and add headers
-    df = pd.read_csv(r'enron-event-history-all.csv', names=['time',
-                                                            'message_id',
-                                                            'sender',
-                                                            'recipients',
-                                                            'topic',
-                                                            'mode'])
+    df = pd.read_csv(csv_file, names=['time',
+                                      'message_id',
+                                      'sender',
+                                      'recipients',
+                                      'topic',
+                                      'mode'])
     #read in dataset created to clean the dataset given file
     df_dict_to_clean_names = pd.read_csv(r'Dictionary-to-clean-names.csv')
 
@@ -110,7 +111,7 @@ def exec_q3(top_five_senders, senders_time, parse_recip_df):
 
 
 if __name__ == "__main__":
-    
+    csv_file = sys.argv[1]
     TOP_FIVE_SENDERS, SENDERS_NUM_MSGS_PER_TIME, SENDERS_TIME, PARSE_RECIP_DF = exec_q1()
     exec_q2(TOP_FIVE_SENDERS, SENDERS_NUM_MSGS_PER_TIME)
     exec_q3(TOP_FIVE_SENDERS, SENDERS_TIME, PARSE_RECIP_DF)
