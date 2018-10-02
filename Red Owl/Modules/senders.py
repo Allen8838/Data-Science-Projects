@@ -10,7 +10,7 @@ def create_dict_senders_num_msgs(df):
     #putting the df column into a list through map as
     # looping through each row in the df is time consuming
     senders = df['sender'].tolist()
-    
+
     time_ls = df['time'].tolist()
 
     #discard empty values and header names
@@ -36,5 +36,4 @@ def create_dict_senders_num_msgs(df):
     for sender_time in count_senders_date_messages:
         dict_senders_num_msgs_per_time[sender_time[0]].append((count_senders_date_messages[sender_time], sender_time[1]))
 
-    
     return dict_num_msgs_sender_sent, dict_senders_num_msgs_per_time, unzipped_senders_time
