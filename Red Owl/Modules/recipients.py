@@ -1,9 +1,7 @@
 """Function performing analyses of recipients"""
 
 from collections import defaultdict
-import pandas as pd
 from data_cleaning import replace_messy_w_clean_names
-import time
 
 def cnt_msgs_recvd_by_each_recip(df_parse_recip):
     """move the recipients from the dataframe into a list first
@@ -74,7 +72,7 @@ def parse_recipients(dataframe, dict_orig_cleaned_names):
     """parse the recipient column of the dataframe by pipe."""
 
     parse_recip_df = dataframe['recipients'].str.split('|', -1, expand=True)
-    
+
     number_of_columns = len(parse_recip_df.columns)
 
     column_indexes = create_column_headers(number_of_columns)
