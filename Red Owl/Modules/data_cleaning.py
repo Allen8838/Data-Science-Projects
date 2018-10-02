@@ -13,16 +13,16 @@ def place_orig_clean_names_to_ls(df_clean_names):
     return orig_names, clean_names
 
 
-def replace_messy_w_clean_names(df, orig_names, clean_names, specific_column=None):
+def replace_messy_w_clean_names(df, dict_orig_cleaned_names, specific_column=None):
     """assumes that the df has only one column by default.
     if df has multiple columns, specify the column to change
     """
     if specific_column is None:
         for column in df:
-            df[column] = df[column].replace(orig_names, clean_names)
+            df[column] = df[column].map(dict_orig_cleaned_names).fillna(df[column])
     #apply cleaning to only one column of df
     else:
-        df[specific_column] = df[specific_column].replace(orig_names, clean_names)
+        df[specific_column] = df[specific_column].map(dict_orig_cleaned_names).fillna(df[specific_column])
 
     return df
 
