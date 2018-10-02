@@ -33,6 +33,7 @@ def find_top_senders(num_senders_desc, msgs_rcvd, both_dict_key, num_senders_loo
     return top_five_senders
 
 def create_recip_sender_time(senders_time, recip_df, col_rows_w_tsenders, top_five_senders):
+    """create pairings of who sent an email to a recipient and at what time"""
     #tsenders stands for top senders
     recip_sender_time = []
 
