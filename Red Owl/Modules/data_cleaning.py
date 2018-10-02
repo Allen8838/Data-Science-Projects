@@ -1,55 +1,49 @@
-import pandas as pd
-import datetime 
+"""Replace names in original data file with self built name mapping csv file,
+convert all names to the same case,
+convert unix time to regular date time"""
 
-list_of_names_in_original_file = []
+import datetime
 
-list_of_cleaned_names = []
+def place_orig_clean_names_to_ls(df_clean_names):
+    """move names from the df into lists to make it easier to replace names"""
 
-adjust_for_milliseconds = 1000
+    orig_names = df_clean_names['name in original file'].tolist()
+    clean_names = df_clean_names['cleaned name in new file'].tolist()
 
-add_to_list_names_original = lambda x: list_of_names_in_original_file.append(x) 
-add_to_list_cleaned_names = lambda x: list_of_cleaned_names.append(x) 
-to_lowercase = lambda x:x.lower()
-#leaving out time so that the data is easier to visualize graphically. leaving out day also as too many unique days
-#slows down matplotlib when plotting
-convert_time_readable = lambda x: datetime.datetime.fromtimestamp(int(x/adjust_for_milliseconds)).strftime('%Y-%m')  
-
-def place_names_in_original_and_cleaned_names_in_lists(df_dictionary_to_clean_names):
-    df_dictionary_to_clean_names['name in original file'].apply(add_to_list_names_original)
-    df_dictionary_to_clean_names['cleaned name in new file'].apply(add_to_list_cleaned_names)
-
-    return list_of_names_in_original_file, list_of_cleaned_names
+    return orig_names, clean_names
 
 
-def replace_messy_names_w_cleaned_names(df, list_of_names_in_original_file, list_of_cleaned_names, specific_column=None):
-    #apply cleaning to all columns of dataframe
-    if specific_column == None:
+def replace_messy_w_clean_names(df, orig_names, clean_names, specific_column=None):
+    """assumes that the df has only one column by default.
+    if df has multiple columns, specify the column to change
+    """
+    if specific_column is None:
         for column in df:
-            df[column] = df[column].replace(list_of_names_in_original_file, list_of_cleaned_names)
-    #apply cleaning to only one column of dataframe
+            df[column] = df[column].replace(orig_names, clean_names)
+    #apply cleaning to only one column of df
     else:
-        df[specific_column] = df[specific_column].replace(list_of_names_in_original_file, list_of_cleaned_names)
+        df[specific_column] = df[specific_column].replace(orig_names, clean_names)
 
-    return df 
-
-
-def convert_names_to_lowercase(dataframe, column_name):
-    dataframe[column_name] = dataframe[column_name].apply(to_lowercase)
-
-    return dataframe
+    return df
 
 
-def convert_unix_time_to_utc_time(dataframe, column_name):
-    dataframe[column_name] = dataframe[column_name].map(convert_time_readable)
+def convert_names_to_lowercase(df, column_name):
+    """this makes sure that the names are in one format so that they
+    can be grouped and counted together in later analysis"""
 
-    return dataframe
+    #use numpy vectorization 
+    df[column_name] = df[column_name].str.lower()
 
-
-
-
-
-
+    return df
 
 
+def convert_unix_time_to_utc_time(df, column_name):
+    """replaceing unix time with human readable date for graphing"""
+    adj_for_ms = 1000
+    #leaving out time so that the data is easier to visualize graphically. leaving out day
+    # also as too many unique days slows down matplotlib when plotting
+    convert_time_readable = lambda x: datetime.datetime.fromtimestamp(int(x/adj_for_ms)).strftime('%Y-%m')
 
+    df[column_name] = df[column_name].map(convert_time_readable)
 
+    return df
