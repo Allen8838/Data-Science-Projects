@@ -31,7 +31,7 @@ def convert_names_to_lowercase(df, column_name):
     """this makes sure that the names are in one format so that they
     can be grouped and counted together in later analysis"""
 
-    #use numpy vectorization 
+    #use numpy vectorization
     df[column_name] = df[column_name].str.lower()
 
     return df
