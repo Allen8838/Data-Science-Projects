@@ -3,6 +3,7 @@
 from collections import defaultdict
 import pandas as pd
 from data_cleaning import replace_messy_w_clean_names
+import time
 
 def cnt_msgs_recvd_by_each_recip(df_parse_recip):
     """move the recipients from the dataframe into a list first
@@ -69,7 +70,7 @@ def coll_cols_rows_tsenders_recip(df_parse_recip, top_five_senders):
     return df_parse_recip, col_n_rows_w_top_senders
 
 
-def parse_recipients(dataframe, orig_names, cleaned_names):
+def parse_recipients(dataframe, dict_orig_cleaned_names):
     """parse the recipient column of the dataframe by pipe."""
 
     parse_recip_df = dataframe['recipients'].str.split('|', -1, expand=True)
@@ -80,6 +81,6 @@ def parse_recipients(dataframe, orig_names, cleaned_names):
     parse_recip_df.reset_index()
     parse_recip_df.columns = column_indexes
 
-    parse_recip_df = replace_messy_w_clean_names(parse_recip_df, orig_names, cleaned_names)
+    parse_recip_df = replace_messy_w_clean_names(parse_recip_df, dict_orig_cleaned_names)
 
     return parse_recip_df
