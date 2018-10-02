@@ -8,7 +8,7 @@ import numpy as np
 
 from data_cleaning import place_orig_clean_names_to_ls, replace_messy_w_clean_names, convert_names_to_lowercase, convert_unix_time_to_utc_time
 from senders import create_dict_senders_num_msgs
-from recipients import cnt_msgs_recvd_by_each_recip, parse_recipients, create_column_headers, coll_cols_rows_tsenders_recip
+from recipients import cnt_msgs_recvd_by_each_recip, create_column_headers, coll_cols_rows_tsenders_recip, parse_recipients
 from senders_recipients import find_top_senders, create_recip_sender_time
 from plot import graph_top_senders, find_uni_num_msgs_uni_time_per, graph_tsenders_uni_msgs
 
@@ -28,14 +28,14 @@ def exec_q1():
     df_dict_to_clean_names = pd.read_csv(r'Dictionary-to-clean-names.csv')
 
     #some sender names are not in a consistent format. placing sender names
-    #in original file as well as a cleanup name list into lists. lists are
-    #easier to work with then dataframes
+    #in original file as well as a cleanup name list into lists.
     orig_names, cleaned_names = place_orig_clean_names_to_ls(df_dict_to_clean_names)
     df = replace_messy_w_clean_names(df, orig_names, cleaned_names, 'sender')
+   
     #converting all names to the same case so that same names of different cases
     #will be grouped together
-
     df = convert_names_to_lowercase(df, 'sender')
+
     #converting the time from milliseconds to date (without time). having just the date
     #will make it easier to graph the data for questions 2 and 3
     df = convert_unix_time_to_utc_time(df, 'time')
@@ -50,7 +50,7 @@ def exec_q1():
                                                    key=lambda t: t[1],
                                                    reverse=True))
 
-    parse_recip_df = helper_func_clean_recip_df(df, orig_names, cleaned_names)
+    parse_recip_df = parse_recipients(df, orig_names, cleaned_names)
 
     msgs_rcvd_by_recip = cnt_msgs_recvd_by_each_recip(parse_recip_df)
 
@@ -81,37 +81,6 @@ def exec_q1():
 #perform datacleaning of parse_recip_df. should speed up execution of
 #question 1 as the memory generated from this helper function
 #will be released upon exit of the function
-
-def helper_func_clean_recip_df(dataframe, orig_names, cleaned_names):
-    """helper function to parse the recipient column of the dataframe by pipe.
-    do so using parallel processing"""
-    #parse_recip_df = parse_recipients(dataframe)
-    parse_recip_df = parallel_df_process(dataframe, parse_recipients, 30, 0, True)
-    #loop through each cell in the parse_recip_df and clean the names like what was done above
-    #add headers to the dataframe first
-    number_of_columns = len(parse_recip_df.columns)
-
-    column_indexes = create_column_headers(number_of_columns)
-    parse_recip_df.reset_index()
-    parse_recip_df.columns = column_indexes
-
-    parse_recip_df = replace_messy_w_clean_names(parse_recip_df, orig_names, cleaned_names)
-
-    return parse_recip_df
-
-def parallel_df_process(dataframe, function_for_parallel, partitions=10, axis=None, map_func=None):
-    """use multiple processes to parse recipient column of dataframe"""
-    processes = 6 #set as default
-    pool = Pool(processes)
-    #split the dataframe into partitions, row-wise as we are only apply the function to one column
-    if map_func:
-        dataframe_split = np.array_split(dataframe, partitions, axis=axis)
-        dataframe = pd.concat(pool.map(function_for_parallel, dataframe_split))
-        pool.close()
-        pool.join()
-
-
-    return dataframe
 
 
 def exec_q2(top_five_senders, senders_num_msgs_per_time):
