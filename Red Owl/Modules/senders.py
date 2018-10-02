@@ -7,15 +7,15 @@ def create_dict_senders_num_msgs(df):
     """Create a dictionary of the number of messages a sender sent,
     and a dictionary that counts the number of messages a sender sent
     on a certain date"""
-    senders = []
-    add_senders_ls = lambda x: senders.append(str(x)) if x != '' and x != 'sender' else None
-    time_ls = []
-    add_time_ls = lambda x: time_ls.append(x) if x != '' and x != 'time' else None
-
     #putting the df column into a list through map as
     # looping through each row in the df is time consuming
-    df['sender'].map(add_senders_ls)
-    df['time'].map(add_time_ls)
+    senders = df['sender'].tolist()
+    
+    time_ls = df['time'].tolist()
+
+    #discard empty values and header names
+    senders = [str(name) for name in senders if str(name) != '' and str(name) != 'sender']
+    time_ls = [timestamp for timestamp in time_ls if timestamp != '' and timestamp != 'time']
 
     senders_time = zip(senders, time_ls)
 
