@@ -3,8 +3,6 @@ import sys
 from collections import OrderedDict
 import pandas as pd
 
-import numpy as np
-
 from data_cleaning import place_orig_clean_names_to_ls, replace_messy_w_clean_names, convert_names_to_lowercase, convert_unix_time_to_utc_time
 from senders import create_dict_senders_num_msgs
 from recipients import cnt_msgs_recvd_by_each_recip, coll_cols_rows_tsenders_recip, parse_recipients
