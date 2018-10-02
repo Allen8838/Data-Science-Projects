@@ -5,7 +5,6 @@ import datetime
 from matplotlib.dates import date2num
 import matplotlib.pyplot as plt
 
-
 def graph_top_senders(top_five_senders, dict_senders_num_msgs_per_time):
     """function for question 2. shows number of emails sent
     over time by the top senders"""
@@ -68,7 +67,7 @@ def graph_tsenders_uni_msgs(tsender_uni_num_msgs_uni_time):
     ax.legend()
     ax.xaxis_date()
     figure.savefig('Unique emails received by top sender over time', dpi=figure.dpi)
-    
+
 
 def find_uni_num_msgs_uni_time_per(top_five_senders, tuple_recip_sender_time_sorted):
     """helper function to graph question 3"""
