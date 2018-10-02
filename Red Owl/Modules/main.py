@@ -30,8 +30,12 @@ def exec_q1():
     #some sender names are not in a consistent format. placing sender names
     #in original file as well as a cleanup name list into lists.
     orig_names, cleaned_names = place_orig_clean_names_to_ls(df_dict_to_clean_names)
-    df = replace_messy_w_clean_names(df, orig_names, cleaned_names, 'sender')
-   
+
+    #used dict so that we can use map function to clean names
+    dict_orig_cleaned_names = dict(zip(orig_names, cleaned_names))
+
+    df = replace_messy_w_clean_names(df, dict_orig_cleaned_names, 'sender')
+
     #converting all names to the same case so that same names of different cases
     #will be grouped together
     df = convert_names_to_lowercase(df, 'sender')
@@ -50,7 +54,7 @@ def exec_q1():
                                                    key=lambda t: t[1],
                                                    reverse=True))
 
-    parse_recip_df = parse_recipients(df, orig_names, cleaned_names)
+    parse_recip_df = parse_recipients(df, dict_orig_cleaned_names)
 
     msgs_rcvd_by_recip = cnt_msgs_recvd_by_each_recip(parse_recip_df)
 
@@ -106,9 +110,7 @@ def exec_q3(top_five_senders, senders_time, parse_recip_df):
 
 
 if __name__ == "__main__":
-    TIC = time.time()
+    
     TOP_FIVE_SENDERS, SENDERS_NUM_MSGS_PER_TIME, SENDERS_TIME, PARSE_RECIP_DF = exec_q1()
     exec_q2(TOP_FIVE_SENDERS, SENDERS_NUM_MSGS_PER_TIME)
     exec_q3(TOP_FIVE_SENDERS, SENDERS_TIME, PARSE_RECIP_DF)
-    TOC = time.time()   
-    print(TOC-TIC)
