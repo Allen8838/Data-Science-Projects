@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 import pandas as pd
+from data_cleaning import replace_messy_w_clean_names
 
 def cnt_msgs_recvd_by_each_recip(df_parse_recip):
     """move the recipients from the dataframe into a list first
@@ -20,15 +21,6 @@ def cnt_msgs_recvd_by_each_recip(df_parse_recip):
             msgs_rcvd_by_recipient[recipient] += 1
 
     return msgs_rcvd_by_recipient
-
-def parse_recipients(dataframe):
-    """multiple recipients in one cell, separated by pipe.
-    parse each recipient into individual cell"""
-
-    parse_recip_by_pipe = lambda x: pd.Series([i for i in reversed(str(x).split('|'))])
-    parsed_recip_df = dataframe['recipients'].apply(parse_recip_by_pipe)
-
-    return parsed_recip_df
 
 def convert_false_if_not_tsender(cell_value, top_five_senders):
     """make cell value false if it is not a top sender.
@@ -75,3 +67,19 @@ def coll_cols_rows_tsenders_recip(df_parse_recip, top_five_senders):
             del df_parse_recip[index]
 
     return df_parse_recip, col_n_rows_w_top_senders
+
+
+def parse_recipients(dataframe, orig_names, cleaned_names):
+    """parse the recipient column of the dataframe by pipe."""
+
+    parse_recip_df = dataframe['recipients'].str.split('|', -1, expand=True)
+    
+    number_of_columns = len(parse_recip_df.columns)
+
+    column_indexes = create_column_headers(number_of_columns)
+    parse_recip_df.reset_index()
+    parse_recip_df.columns = column_indexes
+
+    parse_recip_df = replace_messy_w_clean_names(parse_recip_df, orig_names, cleaned_names)
+
+    return parse_recip_df
