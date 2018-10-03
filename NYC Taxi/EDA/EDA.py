@@ -135,6 +135,11 @@ if __name__ == "__main__":
     
     # #one hot encode the flag column first
     df = pd.get_dummies(df, columns=["store_and_fwd_flag"])
+
+    #delete any rows where the trip is over 10 hours (3600 seconds)
+    df = df[df['trip_duration'].values <= 3600]
+
+    print(df.shape)
     #feature engineering with datetime objects
     #split data from time for pickup and dropoff datetime object
     
@@ -150,6 +155,11 @@ if __name__ == "__main__":
     df['rounded_pickup_time_hour'] = pd.to_datetime(df['pickup_datetime_rounded_15_min']).dt.hour 
     df['rounded_dropoff_time_hour'] = pd.to_datetime(df['dropoff_datetime_rounded_15_min']).dt.hour 
 
+    df['pickup_time_hour_sin'] = np.sin(2 * np.pi * df['rounded_pickup_time_hour']/23.0)
+    df['pickup_time_hour_cos'] = np.cos(2 * np.pi * df['rounded_pickup_time_hour']/23.0)
+
+    df['dropoff_time_hour'] = np.sin(2 * np.pi * df['rounded_dropoff_time_hour']/23.0)
+    df['rounded_dropoff_time_hour'] = np.cos(2 * np.pi * df['rounded_dropoff_time_hour']/23.0)
 
     #split datetime between dates and time
     #using normalize even though it gives us 0:00 time, but the resulting column is a datetime object, which allows us to further process
@@ -166,11 +176,16 @@ if __name__ == "__main__":
 
     df['dropoff_day_of_week'] = df['dropoff_datetime_rounded_15_min'].dt.day_name()
 
+    #compute 
+
     #one hot encode day of the week for both pickup and dropoff
     df = pd.get_dummies(df, columns=['pickup_day_of_week', 'dropoff_day_of_week'])
 
     df.head(10000).to_csv('dataframe_w_datetime_feature_engineering.csv')
-    # correlations_data = df.corr()['trip_duration'].sort_values()
+    correlations_data = df.corr()['trip_duration'].sort_values()
 
-    # correlations_data.to_csv("correlation_data.csv")
+    correlations_data.to_csv("correlation_data.csv")
 
+    #create pair plot 
+    #data_pairplot = sns.pairplot(df)
+    #data_pairplot.savefig('pairplot.png')
