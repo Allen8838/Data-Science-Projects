@@ -5,7 +5,7 @@ import numpy as np
 import seaborn as sns
 
 def get_desc_stats(df, csv_name, png_name):
-    df.describe().to_csv(name)
+    df.describe().to_csv(csv_name)
     df.hist()
     plt.tight_layout()
     plt.savefig(png_name)
@@ -72,20 +72,42 @@ def bearing_array(lat1, lng1, lat2, lng2):
     x = np.cos(lat1) * np.sin(lat2) - np.sin(lat1) * np.cos(lat2) * np.cos(lng_delta_rad)
     return np.degrees(np.arctan2(y, x))
 
-def convert_datetime_n_round(df, column, min):
-    df[column] =  pd.to_datetime(df[column])
-    
-    return df[column].dt.round(min)
+
+def convert_time_sin_cos(df, column):
+    sin_var = np.sin(2 * np.pi * df[column]/23.0)
+    cos_var = np.cos(2 * np.pi * df[column]/23.0)
+
+    return sin_var, cos_var
 
 
-def split_date_time(df, column):
+def modify_datetime(df):
+    df['pickup_hour'] = pd.to_datetime(df['pickup_datetime']).dt.hour 
+    df['dropoff_hour'] = pd.to_datetime(df['dropoff_datetime']).dt.hour
+
+    df['pickup_minute'] = pd.to_datetime(df['pickup_datetime']).dt.minute 
+    df['dropoff_minute'] = pd.to_datetime(df['dropoff_datetime']).dt.minute
+
+    df['pickup_hour_sin'], df['pickup_hour_cos'] = convert_time_sin_cos(df, 'pickup_hour')
+    df['dropoff_hour_sin'], df['dropoff_hour_cos'] = convert_time_sin_cos(df, 'dropoff_hour')
+     
+    #split datetime between dates and time
     #using normalize even though it gives us 0:00 time, but the resulting column is a datetime object, which allows us to further process
     #for day of week
- 
-    date_var = df[column].dt.normalize()
-    time_var = df[column].dt.time
+    df['pickup_date'] = pd.to_datetime(df['pickup_datetime']).dt.date
+    df['dropoff_date'] = pd.to_datetime(df['dropoff_datetime']).dt.date
+     
+    #create day of the week for both pickup date and dropoff dates
+    df['pickup_day'] = pd.to_datetime(df['pickup_datetime']).dt.weekday
 
-    return date_var, time_var
+    df['dropoff_day'] = pd.to_datetime(df['dropoff_datetime']).dt.weekday
 
-def find_day_of_week(df, column):
-    return df[column].dt.day_name()
+    #get week of year to capture effects of holidays 
+    df['pickup_weekofyear'] = pd.to_datetime(df['pickup_datetime']).dt.weekofyear
+
+    df["month"] = pd.to_datetime(df['pickup_datetime']).dt.month
+
+    df["year"] = pd.to_datetime(df['pickup_datetime']).dt.year
+    #one hot encode day of the week for both pickup and dropoff
+    df = pd.get_dummies(df, columns=['pickup_day', 'dropoff_day'])
+
+    return df 
