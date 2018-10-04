@@ -3,20 +3,21 @@ import matplotlib.pyplot as plt
 from IPython.core.pylabtools import figsize
 import numpy as np
 import seaborn as sns
+import xgboost as xgb
+from graph import graph_train_test_maps, graph_train_test_trips
 from data_preprocessing import get_desc_stats,\
-                               missing_values_table,\ 
-                               haversine_array,\ 
-                               dummy_manhattan_distance,\ 
-                               bearing_array,\ 
-                               convert_datetime_n_round,\
-                               find_day_of_week,\ 
-                               convert_time_sin_cos,\ 
+                               missing_values_table,\
+                               haversine_array,\
+                               dummy_manhattan_distance,\
+                               bearing_array,\
+                               convert_time_sin_cos,\
                                modify_datetime
 
 from kmeans import find_kmeans_clusters_graph
+from sklearn.model_selection import train_test_split
 
 
-def create_cols_distances():
+def create_cols_distances(df):
     #create a column for haversine distance
     df['distance'] = haversine_array(df['pickup_longitude'], df['pickup_latitude'], df['dropoff_longitude'], df['dropoff_latitude'])
 
@@ -34,7 +35,7 @@ def remove_outliers(df, trip_dur_max, trip_dur_min, dist_min):
 
     return df
 
-def create_avg_speed_cols():
+def create_avg_speed_cols(df):
     #create speed column. this should be correlated with the day component
     #and may give additional insight
     df['avg_speed_haversine'] = 1000*df['distance'].values/df['trip_duration']
@@ -43,128 +44,42 @@ def create_avg_speed_cols():
     return df 
 
 
-
 if __name__ == "__main__":    
-    df = pd.read_csv('../train.csv')    
-    get_desc_stats(df, 'descriptive statistics.csv', 'histograms_of_columns.png')
-    #see which columns has missing values and look at how much missing values are there
-    missing_values_table(df)
+    train = pd.read_csv('../train.csv')
+    test = pd.read_csv('../test.csv')
 
-    df = create_cols_distances()
+    train = create_cols_distances(train)
+    test = create_cols_distances(test)
 
     #one hot encode the flag column first
-    df = pd.get_dummies(df, columns=["store_and_fwd_flag"])
+    train = pd.get_dummies(train, columns=["store_and_fwd_flag"])
+    test = pd.get_dummies(test, columns=["store_and_fwd_flag"])
 
-    df = remove_outliers(df, 3600, 300, 0.5)
+    train = remove_outliers(train, 3600, 300, 0.5)
 
-    df = create_avg_speed_cols()
+    train = create_avg_speed_cols(train)
+    test = create_avg_speed_cols(test)
 
-    df = modify_datetime(df)
+    train = modify_datetime(train)
+    test = modify_datetime(test)
+    
+    coords_train = np.vstack((train[['pickup_latitude', 'pickup_longitude']].values,
+                              train[['dropoff_latitude', 'dropoff_longitude']].values))
 
-    df.head(10000).to_csv('dataframe_w_datetime_feature_engineering.csv')
+    coords_test = np.vstack((test[['pickup_latitude', 'pickup_longitude']].values,
+                             test[['dropoff_latitude', 'dropoff_longitude']].values))
 
-    #sort variables from least to most correlated
-    correlations_data = df.corr()['trip_duration'].sort_values()
 
-    correlations_data.to_csv("correlation_data.csv")
+    find_kmeans_clusters_graph(train, coords_train, 'pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude', 'kmeans_clusters_train.png')
+    find_kmeans_clusters_graph(test, coords_test, 'pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude', 'kmeans_clusters_test.png')
 
-    coords = np.vstack((df[['pickup_latitude', 'pickup_longitude']].values,
-                        df[['dropoff_latitude', 'dropoff_longitude']].values))
-
-    find_kmeans_clusters_graph(df, coords, 'pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude', 'kmeans_clusters.png')
-
-    f, ax = plt.subplots(figsize=(20,5), ncols=1)
-    pass_cnt_vendorid = sns.countplot("passenger_count", hue='vendor_id', data=df, ax=ax)
-    figure = pass_cnt_vendorid.get_figure()
-    _ = ax.set_xlim([0.5, 7])
-    figure.savefig('Passenger_Count_vs_Vendor_ID.png')
-
-    #assuming that the resulting cluster by days will be comparable to using
-    #dropoff_days
-    pickup_days = ['pickup_day_1', 
-            'pickup_day_2',
-            'pickup_day_3',
-            'pickup_day_4',
-            'pickup_day_5',
-            'pickup_day_6',
-            'pickup_day_0']
-
-    output_img_names = ['KMeans_Monday.png', 
-                        'KMeans_Tuesday.png',
-                        'KMeans_Wednesday.png',
-                        'KMeans_Thursday.png',
-                        'KMeans_Friday.png',
-                        'KMeans_Saturday.png',
-                        'KMeans_Sunday.png']
-
-    for i, day in enumerate(pickup_days):
-        find_kmeans_clusters_graph(df[df[day]==1], coords, 'pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude', output_img_names[i])
     
 
-    #create pair plot 
-    # data_pairplot = sns.pairplot(df)
-    # data_pairplot.savefig('pairplot.png')
-
-
-    #shorten the dataframe by whether the trip duration column is within 3 standard deviations
-    #there are extreme trip duration values that severely distorts the histogram
-    #df = df[np.abs(df.trip_duration-df.trip_duration.mean()) <= (3*df.trip_duration.std())]
     
 
-    # # Histogram of the Trip Duration
-    #figsize(8, 8)
-    
-    # plt.hist(df['trip_duration'].dropna(), bins = 100, edgecolor = 'k')
-    # plt.xlabel('trip_duration') 
-    # plt.ylabel('Number of Trips')
-    # plt.title('Trip Duration Distribution')
-    # plt.tight_layout()
-    # plt.savefig('histograms_of_trip_duration_within_3_std.png')
-
-    #let's look at trip distribution based on vendors
-    # df_vendor_1 = df[df['vendor_id'] == 1]
-    # df_vendor_2 = df[df['vendor_id'] == 2]
-
-
-    # plt.hist(df_vendor_1['trip_duration'].dropna(), bins = 100, edgecolor = 'k')
-    # plt.xlabel('trip_duration') 
-    # plt.ylabel('Number of Trips')
-    # plt.title('Trip Duration Distribution for Vendor 1')
-    # plt.tight_layout()
-    # plt.savefig('Vendor_1_histograms_of_trip_duration_within_3_std.png')
-    
-    # plt.hist(df_vendor_2['trip_duration'].dropna(), bins = 100, edgecolor = 'k')
-    # plt.xlabel('trip_duration') 
-    # plt.ylabel('Number of Trips')
-    # plt.title('Trip Duration Distribution for Vendor 2')
-    # plt.tight_layout()
-    # plt.savefig('Vendor_2_histograms_of_trip_duration_within_3_std.png')
-
-    #break histogram into buckets as we have some extreme values, distorting the histogram to look like one column
     
 
-
-    # # Plot of distribution of scores for passenger categories
-    # figsize(12, 10)
-
-    # # Plot each passenger count
-    # for passenger_count in list_passenger_count_unique:
-    #     if passenger_count == 0 or passenger_count == 1 or passenger_count == 2:
-    #         # Select the passenger count type
-    #         subset = df[df['passenger_count'] == passenger_count]
-        
-    #         # Density plot of passenger_count
-    #         sns.kdeplot(subset['trip_duration'].dropna(),
-    #                 label = passenger_count, shade = False, alpha = 0.8)
-        
-    # # label the plot
-    # plt.xlabel('Trip Duration', size = 20); plt.ylabel('Density', size = 20)
-    # plt.title('Density_Plot_of_Trip_Duration_by_PassCount-0-2', size = 28)
-    # plt.savefig('Density_Plot_of_Trip_Duration_by_PassCount-0-2.png')
-
-    """Find all correlations with trip_duration and sort"""
-    """Feature Engineering with Dates"""
-    
+     
 
  
 
