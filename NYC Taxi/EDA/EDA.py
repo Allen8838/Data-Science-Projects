@@ -3,7 +3,16 @@ import matplotlib.pyplot as plt
 from IPython.core.pylabtools import figsize
 import numpy as np
 import seaborn as sns
-from data_preprocessing import get_desc_stats, missing_values_table, haversine_array, dummy_manhattan_distance, bearing_array, convert_datetime_n_round, split_date_time, find_day_of_week, convert_time_sin_cos
+from data_preprocessing import get_desc_stats,\
+                               missing_values_table,\ 
+                               haversine_array,\ 
+                               dummy_manhattan_distance,\ 
+                               bearing_array,\ 
+                               convert_datetime_n_round,\
+                               find_day_of_week,\ 
+                               convert_time_sin_cos,\ 
+                               modify_datetime
+
 from kmeans import find_kmeans_clusters_graph
 
 
@@ -50,34 +59,11 @@ if __name__ == "__main__":
 
     df = create_avg_speed_cols()
 
-    #convert pickup_date and dropoff_date to datetime objects
-    #round both pickup and dropoff time to the latest 15 min before applying sin and cos functions to them
-    #assuming that hours will matter, not minutes and want to get to the closest hour
-    
-    df['pickup_datetime_rounded_15_min'] = convert_datetime_n_round(df, 'pickup_datetime', '15min')
-    df['dropoff_datetime_rounded_15_min'] = convert_datetime_n_round(df, 'dropoff_datetime', '15min')
-
-    df['rounded_pickup_time_hour'] = pd.to_datetime(df['pickup_datetime_rounded_15_min']).dt.hour 
-    df['rounded_dropoff_time_hour'] = pd.to_datetime(df['dropoff_datetime_rounded_15_min']).dt.hour 
-
-    df['pickup_time_hour_sin'], df['pickup_time_hour_cos'] = convert_time_sin_cos(df, 'rounded_pickup_time_hour')
-    df['dropoff_time_hour_sin'], df['rounded_dropoff_time_cos'] = convert_time_sin_cos(df, 'rounded_dropoff_time_hour')
-     
-    #split datetime between dates and time
-    #using normalize even though it gives us 0:00 time, but the resulting column is a datetime object, which allows us to further process
-    #for day of week
-    df['pickup_date'], df['pickup_time'] = split_date_time(df, 'pickup_datetime_rounded_15_min')
-    df['dropoff_date'], df['dropoff_time'] = split_date_time(df, 'dropoff_datetime_rounded_15_min')
-     
-    #create day of the week for both pickup date and dropoff dates
-    df['pickup_day_of_week'] = find_day_of_week(df, 'pickup_datetime_rounded_15_min') 
-
-    df['dropoff_day_of_week'] = find_day_of_week(df, 'dropoff_datetime_rounded_15_min')
-
-    #one hot encode day of the week for both pickup and dropoff
-    df = pd.get_dummies(df, columns=['pickup_day_of_week', 'dropoff_day_of_week'])
+    df = modify_datetime(df)
 
     df.head(10000).to_csv('dataframe_w_datetime_feature_engineering.csv')
+
+    #sort variables from least to most correlated
     correlations_data = df.corr()['trip_duration'].sort_values()
 
     correlations_data.to_csv("correlation_data.csv")
@@ -95,13 +81,13 @@ if __name__ == "__main__":
 
     #assuming that the resulting cluster by days will be comparable to using
     #dropoff_days
-    pickup_days = ['pickup_day_of_week_Monday', 
-            'pickup_day_of_week_Tuesday',
-            'pickup_day_of_week_Wednesday',
-            'pickup_day_of_week_Thursday',
-            'pickup_day_of_week_Friday',
-            'pickup_day_of_week_Saturday',
-            'pickup_day_of_week_Sunday']
+    pickup_days = ['pickup_day_1', 
+            'pickup_day_2',
+            'pickup_day_3',
+            'pickup_day_4',
+            'pickup_day_5',
+            'pickup_day_6',
+            'pickup_day_0']
 
     output_img_names = ['KMeans_Monday.png', 
                         'KMeans_Tuesday.png',
