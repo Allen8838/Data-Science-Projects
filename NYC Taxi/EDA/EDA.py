@@ -85,7 +85,7 @@ if __name__ == "__main__":
     coords = np.vstack((df[['pickup_latitude', 'pickup_longitude']].values,
                         df[['dropoff_latitude', 'dropoff_longitude']].values))
 
-    find_kmeans_clusters_graph(df, coords, 'pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude')
+    find_kmeans_clusters_graph(df, coords, 'pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude', 'kmeans_clusters.png')
 
     f, ax = plt.subplots(figsize=(20,5), ncols=1)
     pass_cnt_vendorid = sns.countplot("passenger_count", hue='vendor_id', data=df, ax=ax)
@@ -93,6 +93,27 @@ if __name__ == "__main__":
     _ = ax.set_xlim([0.5, 7])
     figure.savefig('Passenger_Count_vs_Vendor_ID.png')
 
+    #assuming that the resulting cluster by days will be comparable to using
+    #dropoff_days
+    pickup_days = ['pickup_day_of_week_Monday', 
+            'pickup_day_of_week_Tuesday',
+            'pickup_day_of_week_Wednesday',
+            'pickup_day_of_week_Thursday',
+            'pickup_day_of_week_Friday',
+            'pickup_day_of_week_Saturday',
+            'pickup_day_of_week_Sunday']
+
+    output_img_names = ['KMeans_Monday.png', 
+                        'KMeans_Tuesday.png',
+                        'KMeans_Wednesday.png',
+                        'KMeans_Thursday.png',
+                        'KMeans_Friday.png',
+                        'KMeans_Saturday.png',
+                        'KMeans_Sunday.png']
+
+    for i, day in enumerate(pickup_days):
+        find_kmeans_clusters_graph(df[df[day]==1], coords, 'pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude', output_img_names[i])
+    
 
     #create pair plot 
     # data_pairplot = sns.pairplot(df)
