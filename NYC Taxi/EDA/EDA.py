@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 from IPython.core.pylabtools import figsize
 import numpy as np
 import seaborn as sns
-from data_preprocessing import get_desc_stats, ,missing_values_table, haversine_array, dummy_manhattan_distance, bearing_array, convert_datetime_n_round, split_date_time, find_day_of_week
+from data_preprocessing import get_desc_stats, missing_values_table, haversine_array, dummy_manhattan_distance, bearing_array, convert_datetime_n_round, split_date_time, find_day_of_week, convert_time_sin_cos
+from kmeans import find_kmeans_clusters_graph
+
 
 def create_cols_distances():
     #create a column for haversine distance
@@ -58,12 +60,9 @@ if __name__ == "__main__":
     df['rounded_pickup_time_hour'] = pd.to_datetime(df['pickup_datetime_rounded_15_min']).dt.hour 
     df['rounded_dropoff_time_hour'] = pd.to_datetime(df['dropoff_datetime_rounded_15_min']).dt.hour 
 
-    df['pickup_time_hour_sin'] = np.sin(2 * np.pi * df['rounded_pickup_time_hour']/23.0)
-    df['pickup_time_hour_cos'] = np.cos(2 * np.pi * df['rounded_pickup_time_hour']/23.0)
-
-    df['dropoff_time_hour'] = np.sin(2 * np.pi * df['rounded_dropoff_time_hour']/23.0)
-    df['rounded_dropoff_time_hour'] = np.cos(2 * np.pi * df['rounded_dropoff_time_hour']/23.0)
-
+    df['pickup_time_hour_sin'], df['pickup_time_hour_cos'] = convert_time_sin_cos(df, 'rounded_pickup_time_hour')
+    df['dropoff_time_hour_sin'], df['rounded_dropoff_time_cos'] = convert_time_sin_cos(df, 'rounded_dropoff_time_hour')
+     
     #split datetime between dates and time
     #using normalize even though it gives us 0:00 time, but the resulting column is a datetime object, which allows us to further process
     #for day of week
@@ -83,6 +82,21 @@ if __name__ == "__main__":
 
     correlations_data.to_csv("correlation_data.csv")
 
+    coords = np.vstack((df[['pickup_latitude', 'pickup_longitude']].values,
+                        df[['dropoff_latitude', 'dropoff_longitude']].values))
+
+    find_kmeans_clusters_graph(df, coords, 'pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude')
+
+    f, ax = plt.subplots(figsize=(20,5), ncols=1)
+    pass_cnt_vendorid = sns.countplot("passenger_count", hue='vendor_id', data=df, ax=ax)
+    figure = pass_cnt_vendorid.get_figure()
+    _ = ax.set_xlim([0.5, 7])
+    figure.savefig('Passenger_Count_vs_Vendor_ID.png')
+
+
+    #create pair plot 
+    # data_pairplot = sns.pairplot(df)
+    # data_pairplot.savefig('pairplot.png')
 
 
     #shorten the dataframe by whether the trip duration column is within 3 standard deviations
@@ -147,11 +161,5 @@ if __name__ == "__main__":
 
  
 
-    print(df.shape)
-    #feature engineering with datetime objects
-    #split data from time for pickup and dropoff datetime object
     
-
-    #create pair plot 
-    #data_pairplot = sns.pairplot(df)
-    #data_pairplot.savefig('pairplot.png')
+    
