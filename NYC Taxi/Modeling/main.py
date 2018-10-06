@@ -1,3 +1,5 @@
+"""main module to run submodules"""
+
 import pandas as pd 
 import matplotlib.pyplot as plt
 import datetime as dt
@@ -7,8 +9,10 @@ import seaborn as sns
 import xgboost as xgb
 from graph import graph_train_test_maps, graph_train_test_trips, graph_trip_dist
 from feature_importance import find_feature_imp
-from data_preprocessing import get_desc_stats, missing_values_table, remove_outliers
-from feature_engineering import haversine_array,\
+from data_preprocessing import missing_values_table, remove_outliers
+from feature_engineering import create_cols_distances,\
+                                create_avg_speed_cols,\
+                                haversine_array,\
                                 dummy_manhattan_distance,\
                                 bearing_array,\
                                 convert_time_sin_cos,\
@@ -28,7 +32,6 @@ if __name__ == "__main__":
     #log transform trip duration. we can then use the rmse scoring on the log values
     #to get rmsle
     train['log_trip_duration'] = np.log(train['trip_duration'].values + 1)
-    target = train['log_trip_duration']
 
     """Create additional features"""
     train = create_cols_distances(train)
@@ -42,6 +45,10 @@ if __name__ == "__main__":
     test = pd.get_dummies(test, columns=["store_and_fwd_flag"])
 
     train = remove_outliers(train, 3600, 300, 0.5)
+    
+    #defining target here as this should now have the same number of rows
+    #as the training set
+    target = train['log_trip_duration']
 
     train = create_avg_speed_cols(train)
 
@@ -84,7 +91,7 @@ if __name__ == "__main__":
     features_used = [f for f in train.columns if f not in features_not_used]
 
     """Sanity check to make sure that the distribuutions look right before modeling"""
-    check_train_test_dist(train, test)
+    check_train_test_dist(train, test, features_used)
     graph_train_test_maps(train, test, 'pickup_latitude', 'pickup_longitude')
 
     Xtr, Xv, ytr, yv = train_test_split(train[features_used].values, target, test_size=0.2, random_state=42)
@@ -98,6 +105,7 @@ if __name__ == "__main__":
             'subsample': 0.8, 'lambda': 1., 'nthread': 4, 'booster' : 'gbtree', 'silent': 1,
             'eval_metric': 'rmse', 'objective': 'reg:linear'}
 
+    
     model = xgb.train(xgb_pars, dtrain, 60, watchlist, early_stopping_rounds=50,
                   maximize=False, verbose_eval=10)
 
@@ -105,6 +113,7 @@ if __name__ == "__main__":
     
     imp_features = find_feature_imp(model, features_used)
 
+    print('here2')
     #saved features to file
     imp_features.to_csv('feature_importances.csv')
      
