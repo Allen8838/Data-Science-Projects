@@ -1,123 +1,115 @@
 """main module to run submodules"""
 
-import pandas as pd 
-import matplotlib.pyplot as plt
-import datetime as dt
-from IPython.core.pylabtools import figsize
+import pandas as pd
 import numpy as np
-import seaborn as sns
 import xgboost as xgb
-from graph import graph_train_test_maps, graph_train_test_trips, graph_trip_dist
+from sklearn.model_selection import train_test_split
+from graph import graph_train_test_maps
 from feature_importance import find_feature_imp
-from data_preprocessing import missing_values_table, remove_outliers
+from data_preprocessing import remove_outliers
 from feature_engineering import create_cols_distances,\
                                 create_avg_speed_cols,\
-                                haversine_array,\
-                                dummy_manhattan_distance,\
-                                bearing_array,\
-                                convert_time_sin_cos,\
                                 modify_datetime,\
                                 find_center_points
-
 from check import check_valid_test_dist, check_train_test_dist
 from kmeans import find_kmeans_clusters_graph
-from sklearn.model_selection import train_test_split
-
 
 
 if __name__ == "__main__":
-    train = pd.read_csv('../train.csv')
-    test = pd.read_csv('../test.csv')
+    TRAIN = pd.read_csv('../train.csv')
+    TEST = pd.read_csv('../test.csv')
 
     #log transform trip duration. we can then use the rmse scoring on the log values
     #to get rmsle
-    train['log_trip_duration'] = np.log(train['trip_duration'].values + 1)
+    TRAIN['log_trip_duration'] = np.log(TRAIN['trip_duration'].values + 1)
 
     """Create additional features"""
-    train = create_cols_distances(train)
-    test = create_cols_distances(test)
+    TRAIN = create_cols_distances(TRAIN)
+    TEST = create_cols_distances(TEST)
 
-    train = find_center_points(train, 'pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude')
-    test = find_center_points(test, 'pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude')
+    TRAIN = find_center_points(TRAIN, 'pickup_latitude', 'pickup_longitude',
+                               'dropoff_latitude', 'dropoff_longitude')
+
+    TEST = find_center_points(TEST, 'pickup_latitude', 'pickup_longitude',
+                              'dropoff_latitude', 'dropoff_longitude')
 
     #one hot encode the flag column first
-    train = pd.get_dummies(train, columns=["store_and_fwd_flag"])
-    test = pd.get_dummies(test, columns=["store_and_fwd_flag"])
+    TRAIN = pd.get_dummies(TRAIN, columns=["store_and_fwd_flag"])
+    TEST = pd.get_dummies(TEST, columns=["store_and_fwd_flag"])
 
-    train = remove_outliers(train, 3600, 300, 0.5)
-    
+    TRAIN = remove_outliers(TRAIN, 3600, 300, 0.5)
+
     #defining target here as this should now have the same number of rows
     #as the training set
-    target = train['log_trip_duration']
+    TARGET = TRAIN['log_trip_duration']
 
-    train = create_avg_speed_cols(train)
+    TRAIN = create_avg_speed_cols(TRAIN)
 
-    train = modify_datetime(train)
-    test = modify_datetime(test)
+    TRAIN = modify_datetime(TRAIN)
+    TEST = modify_datetime(TEST)
 
     #reshape coordinates
-    coords_train = np.vstack((train[['pickup_latitude', 'pickup_longitude']].values,
-                              train[['dropoff_latitude', 'dropoff_longitude']].values))
+    coords_train = np.vstack((TRAIN[['pickup_latitude', 'pickup_longitude']].values,
+                              TRAIN[['dropoff_latitude', 'dropoff_longitude']].values))
 
-    coords_test = np.vstack((test[['pickup_latitude', 'pickup_longitude']].values,
-                             test[['dropoff_latitude', 'dropoff_longitude']].values))
+    coords_test = np.vstack((TEST[['pickup_latitude', 'pickup_longitude']].values,
+                             TEST[['dropoff_latitude', 'dropoff_longitude']].values))
 
     """Create cluster features"""
-    find_kmeans_clusters_graph(train, coords_train, 
+    find_kmeans_clusters_graph(TRAIN, coords_train,
                                'pickup_latitude', 'pickup_longitude',
                                'dropoff_latitude', 'dropoff_longitude',
                                'kmeans_clusters_train.png')
-    
-    find_kmeans_clusters_graph(test, coords_test,
+
+    find_kmeans_clusters_graph(TEST, coords_test,
                                'pickup_latitude', 'pickup_longitude',
                                'dropoff_latitude', 'dropoff_longitude',
                                'kmeans_clusters_test.png')
-    
-    features_not_used = ['id', 'log_trip_duration', 
-                         'pickup_datetime', 'dropoff_datetime', 
-                         'dropoff_datetime', 'trip_duration', 
-                         'pickup_date', 'dropoff_date', 
-                         'avg_speed_haversine','avg_speed_manhattan',
+
+    features_not_used = ['id', 'log_trip_duration',
+                         'pickup_datetime', 'dropoff_datetime',
+                         'dropoff_datetime', 'trip_duration',
+                         'pickup_date', 'dropoff_date',
+                         'avg_speed_haversine', 'avg_speed_manhattan',
                          'dropoff_hour', 'dropoff_minute',
                          'dropoff_hour_sin', 'dropoff_hour_cos',
-                         'dropoff_day_0','dropoff_day_1',
+                         'dropoff_day_0', 'dropoff_day_1',
                          'dropoff_day_2', 'dropoff_day_3',
                          'dropoff_day_4', 'dropoff_day_5',
-                         'dropoff_day_6', 'pickup_day_0', 
-                         'pickup_day_1', 'pickup_day_2', 
-                         'pickup_day_3','pickup_day_4',
-                         'pickup_day_5','pickup_day_6']
+                         'dropoff_day_6', 'pickup_day_0',
+                         'pickup_day_1', 'pickup_day_2',
+                         'pickup_day_3', 'pickup_day_4',
+                         'pickup_day_5', 'pickup_day_6']
 
-    features_used = [f for f in train.columns if f not in features_not_used]
+    features_used = [f for f in TRAIN.columns if f not in features_not_used]
 
     """Sanity check to make sure that the distribuutions look right before modeling"""
-    check_train_test_dist(train, test, features_used)
-    graph_train_test_maps(train, test, 'pickup_latitude', 'pickup_longitude')
+    check_train_test_dist(TRAIN, TEST, features_used)
+    graph_train_test_maps(TRAIN, TEST, 'pickup_latitude', 'pickup_longitude')
 
-    Xtr, Xv, ytr, yv = train_test_split(train[features_used].values, target, test_size=0.2, random_state=42)
+    Xtr, Xv, ytr, yv = train_test_split(TRAIN[features_used].values, TARGET,
+                                        test_size=0.2, random_state=42)
 
     dtrain = xgb.DMatrix(Xtr, label=ytr)
     dvalid = xgb.DMatrix(Xv, label=yv)
-    dtest = xgb.DMatrix(test[features_used].values)
+    dtest = xgb.DMatrix(TEST[features_used].values)
     watchlist = [(dtrain, 'train'), (dvalid, 'valid')]
 
     xgb_pars = {'min_child_weight': 50, 'eta': 0.3, 'colsample_bytree': 0.3, 'max_depth': 10,
-            'subsample': 0.8, 'lambda': 1., 'nthread': 4, 'booster' : 'gbtree', 'silent': 1,
-            'eval_metric': 'rmse', 'objective': 'reg:linear'}
+                'subsample': 0.8, 'lambda': 1., 'nthread': 4, 'booster' : 'gbtree', 'silent': 1,
+                'eval_metric': 'rmse', 'objective': 'reg:linear'}
 
-    
     model = xgb.train(xgb_pars, dtrain, 60, watchlist, early_stopping_rounds=50,
-                  maximize=False, verbose_eval=10)
+                      maximize=False, verbose_eval=10)
 
     print('Modeling RMSLE %.5f' % model.best_score)
-    
+
     imp_features = find_feature_imp(model, features_used)
 
-    print('here2')
     #saved features to file
     imp_features.to_csv('feature_importances.csv')
-     
-    check_valid_test_dist(model, dtest, test, dvalid)
+
+    check_valid_test_dist(model, dtest, TEST, dvalid)
     
 
     
