@@ -5,130 +5,140 @@ from IPython.core.pylabtools import figsize
 import numpy as np
 import seaborn as sns
 import xgboost as xgb
-from graph import graph_train_test_maps, graph_train_test_trips
+from graph import graph_train_test_maps, graph_train_test_trips, graph_trip_dist
 from feature_importance import find_feature_imp
-from data_preprocessing import get_desc_stats,\
-                               missing_values_table,\
-                               haversine_array,\
-                               dummy_manhattan_distance,\
-                               bearing_array,\
-                               convert_time_sin_cos,\
-                               modify_datetime
-from check import check_valid_test_dist
+from data_preprocessing import missing_values_table
+from check import check_valid_test_dist, check_train_test_dist
 from kmeans import find_kmeans_clusters_graph
 from sklearn.model_selection import train_test_split
 
 
-def create_cols_distances(df):
-    #create a column for haversine distance
-    df['distance'] = haversine_array(df['pickup_longitude'], df['pickup_latitude'], df['dropoff_longitude'], df['dropoff_latitude'])
-
-    df['manhattan_distance'] = dummy_manhattan_distance(df['pickup_longitude'], df['pickup_latitude'], df['dropoff_longitude'], df['dropoff_latitude'])
-
-    df['bearing'] = bearing_array(df['pickup_longitude'], df['pickup_latitude'], df['dropoff_longitude'], df['dropoff_latitude'])
-
-    return df
-
-def remove_outliers(df, trip_dur_max, trip_dur_min, dist_min):
-    #delete select rows where the data is anomalous 
-    df = df[df['trip_duration'].values <= trip_dur_max] #any rows where the trip is over 10 hours (3600 seconds)
-    df = df[df['trip_duration'].values >= trip_dur_min] #at least 5 min
-    df = df[df['distance'].values >= dist_min] #at least 0.5 km or 6 blocks
-
-    return df
-
-def create_avg_speed_cols(df):
-    #create speed column. this should be correlated with the day component
-    #and may give additional insight
-    df['avg_speed_haversine'] = 1000*df['distance'].values/df['trip_duration']
-    df['avg_speed_manhattan'] = 1000*df['manhattan_distance'].values/df['trip_duration']
-
-    return df 
+def get_desc_stats(df, csv_name, png_name):
+    df.describe().to_csv(csv_name)
+    df.hist()
+    plt.tight_layout()
+    plt.savefig(png_name)
 
 
-if __name__ == "__main__":
-    t0 = dt.datetime.now()    
+if __name__ == '__main__':
+    """EDA 1a - Check Distribution of Trip Duration"""
     train = pd.read_csv('../train.csv')
-    test = pd.read_csv('../test.csv')
+    #shorten the dataframe by whether the trip duration column is within 3 standard deviations
+    #there are extreme trip duration values that severely distorts the histogram
+    #train = train[np.abs(train.trip_duration-train.trip_duration.mean()) <= (3*df.trip_duration.std())]
+    
 
-    #log transform trip duration. we can then use the rmse scoring on the log values
-    #to get rmsle
+    # # Histogram of the Trip Duration
+    #figsize(8, 8)
+    
+    # plt.hist(train['trip_duration'].dropna(), bins = 100, edgecolor = 'k')
+    # plt.xlabel('trip_duration') 
+    # plt.ylabel('Number of Trips')
+    # plt.title('Trip Duration Distribution')
+    # plt.tight_layout()
+    # plt.savefig('histograms_of_trip_duration_within_3_std.png')
+
+    """EDA 1b - Check Distribution of Trip Duration based on Vendors"""
+    # df_vendor_1 = train[train['vendor_id'] == 1]
+    # df_vendor_2 = train[train['vendor_id'] == 2]
+
+    # plt.hist(df_vendor_1['trip_duration'].dropna(), bins = 100, edgecolor = 'k')
+    # plt.xlabel('trip_duration') 
+    # plt.ylabel('Number of Trips')
+    # plt.title('Trip Duration Distribution for Vendor 1')
+    # plt.tight_layout()
+    # plt.savefig('Vendor_1_histograms_of_trip_duration_within_3_std.png')
+    
+    # plt.hist(df_vendor_2['trip_duration'].dropna(), bins = 100, edgecolor = 'k')
+    # plt.xlabel('trip_duration') 
+    # plt.ylabel('Number of Trips')
+    # plt.title('Trip Duration Distribution for Vendor 2')
+    # plt.tight_layout()
+    # plt.savefig('Vendor_2_histograms_of_trip_duration_within_3_std.png')
+
+    """EDA 1c - Check Log Distribution of Trip Duration"""
+    
     train['log_trip_duration'] = np.log(train['trip_duration'].values + 1)
 
-    train = create_cols_distances(train)
-    test = create_cols_distances(test)
+    graph_trip_dist(train, 'trip_duration')
 
-    #one hot encode the flag column first
-    train = pd.get_dummies(train, columns=["store_and_fwd_flag"])
-    test = pd.get_dummies(test, columns=["store_and_fwd_flag"])
-
-    train = remove_outliers(train, 3600, 300, 0.5)
-
-    train = create_avg_speed_cols(train)
-
-    train = modify_datetime(train)
-    test = modify_datetime(test)
-
-    # train.head(10000).to_csv('train10000.csv')
-    # test.head(10000).to_csv('test10000.csv')
+    """EDA 2 - Get some basic statistics of the columns and create histograms of columns"""
+    get_desc_stats(df, 'descriptive statistics.csv', 'histograms_of_columns.png')
     
-    coords_train = np.vstack((train[['pickup_latitude', 'pickup_longitude']].values,
-                              train[['dropoff_latitude', 'dropoff_longitude']].values))
+    """EDA 3 - See if any of the columns have missing values"""
+    missing_values_table(df)
 
-    coords_test = np.vstack((test[['pickup_latitude', 'pickup_longitude']].values,
-                             test[['dropoff_latitude', 'dropoff_longitude']].values))
+    """EDA 4 - See how each feature is correlated with one another. Save to CSV file"""
+    correlations_data = df.corr()['trip_duration'].sort_values()
 
+    correlations_data.to_csv("correlation_data.csv")
 
-    find_kmeans_clusters_graph(train, coords_train, 'pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude', 'kmeans_clusters_train.png')
-    find_kmeans_clusters_graph(test, coords_test, 'pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude', 'kmeans_clusters_test.png')
-    
-    features_not_used = ['id', 'log_trip_duration', 
-                         'pickup_datetime', 'dropoff_datetime', 
-                         'dropoff_datetime', 'trip_duration', 
-                         'pickup_date', 'dropoff_date', 
-                         'avg_speed_haversine','avg_speed_manhattan',
-                         'dropoff_hour', 'dropoff_minute',
-                         'dropoff_hour_sin', 'dropoff_hour_cos',
-                         'dropoff_day_0','dropoff_day_1',
-                         'dropoff_day_2', 'dropoff_day_3',
-                         'dropoff_day_4', 'dropoff_day_5',
-                         'dropoff_day_6', 'pickup_day_0', 
-                         'pickup_day_1', 'pickup_day_2', 
-                         'pickup_day_3','pickup_day_4',
-                         'pickup_day_5','pickup_day_6']
+    """EDA 5 - Find pickup/dropoff clusters. Save the result to PNG"""
 
-    features_used = [f for f in train.columns if f not in features_not_used]
-    target = np.log(train['trip_duration'].values + 1)
+    coords = np.vstack((df[['pickup_latitude', 'pickup_longitude']].values,
+                        df[['dropoff_latitude', 'dropoff_longitude']].values))
 
-    # train = train.astype(float) 
-    # test = test.astype(float)
+    find_kmeans_clusters_graph(df, coords,
+                               'pickup_latitude', 'pickup_longitude',
+                               'dropoff_latitude', 'dropoff_longitude',
+                               'kmeans_clusters.png')
 
-    # train[features_used].head(1000).to_csv('subset of training.csv')
-    # test.head(1000).to_csv('subset of test.csv')
-    Xtr, Xv, ytr, yv = train_test_split(train[features_used].values, target, test_size=0.2, random_state=42)
+    """EDA 6 - See how the number of passengers change with the Vendor ID"""
+    f, ax = plt.subplots(figsize=(20,5), ncols=1)
+    pass_cnt_vendorid = sns.countplot("passenger_count", hue='vendor_id', data=df, ax=ax)
+    figure = pass_cnt_vendorid.get_figure()
+    _ = ax.set_xlim([0.5, 7])
+    figure.savefig('Passenger_Count_vs_Vendor_ID.png')
 
-    dtrain = xgb.DMatrix(Xtr, label=ytr)
-    dvalid = xgb.DMatrix(Xv, label=yv)
-    dtest = xgb.DMatrix(test[features_used].values)
-    watchlist = [(dtrain, 'train'), (dvalid, 'valid')]
+    """EDA 7 - See if clusters differ based on Days""" 
+    #assuming that the resulting cluster by days will be comparable to using
+    #dropoff_days
+    pickup_days = ['pickup_day_1', 
+            'pickup_day_2',
+            'pickup_day_3',
+            'pickup_day_4',
+            'pickup_day_5',
+            'pickup_day_6',
+            'pickup_day_0']
 
-    xgb_pars = {'min_child_weight': 50, 'eta': 0.3, 'colsample_bytree': 0.3, 'max_depth': 10,
-            'subsample': 0.8, 'lambda': 1., 'nthread': 4, 'booster' : 'gbtree', 'silent': 1,
-            'eval_metric': 'rmse', 'objective': 'reg:linear'}
+    output_img_names = ['KMeans_Monday.png', 
+                        'KMeans_Tuesday.png',
+                        'KMeans_Wednesday.png',
+                        'KMeans_Thursday.png',
+                        'KMeans_Friday.png',
+                        'KMeans_Saturday.png',
+                        'KMeans_Sunday.png']
 
-    model = xgb.train(xgb_pars, dtrain, 60, watchlist, early_stopping_rounds=50,
-                  maximize=False, verbose_eval=10)
-
-    print('Modeling RMSLE %.5f' % model.best_score)
-    t1 = dt.datetime.now()
-    print('Training time: %i seconds' % (t1 - t0).seconds)
-    
-    imp_features = find_feature_imp(model, features_used)
-
-    imp_features.to_csv('feature_importances.csv')
-     
-    check_valid_test_dist(model, dtest, test, dvalid)
+    for i, day in enumerate(pickup_days):
+        find_kmeans_clusters_graph(df[df[day]==1], coords,
+                                   'pickup_latitude', 'pickup_longitude',
+                                   'dropoff_latitude', 'dropoff_longitude', 
+                                   output_img_names[i])
     
 
-    
+    """EDA 8 - See how features are correlated with each other"""
+    #data_pairplot = sns.pairplot(df)
+    #data_pairplot.savefig('pairplot.png')
+
+    #graph_train_test_trips(train, test, 'pickup_date')
+    #create pair plot     
+
+    """EDA 9 - Plot of distribution of trip duration for passenger categories"""
+    # figsize(12, 10)
+
+    # # Plot each passenger count
+    # for passenger_count in list_passenger_count_unique:
+    #     if passenger_count == 0 or passenger_count == 1 or passenger_count == 2:
+    #         # Select the passenger count type
+    #         subset = df[df['passenger_count'] == passenger_count]
+        
+    #         # Density plot of passenger_count
+    #         sns.kdeplot(subset['trip_duration'].dropna(),
+    #                 label = passenger_count, shade = False, alpha = 0.8)
+        
+    # # label the plot
+    # plt.xlabel('Trip Duration', size = 20); plt.ylabel('Density', size = 20)
+    # plt.title('Density_Plot_of_Trip_Duration_by_PassCount-0-2', size = 28)
+    # plt.savefig('Density_Plot_of_Trip_Duration_by_PassCount-0-2.png')
+
     
