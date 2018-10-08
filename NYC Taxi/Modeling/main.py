@@ -9,7 +9,8 @@ from feature_importance import find_feature_imp
 from data_preprocessing import remove_outliers
 from feature_engineering import create_cols_distances,\
                                 create_avg_speed_cols,\
-                                modify_datetime,\
+                                modify_datetime_train,\
+                                modify_datetime_test,\
                                 find_center_points
 from check import check_valid_test_dist, check_train_test_dist
 from kmeans import find_kmeans_clusters_graph
@@ -45,8 +46,8 @@ if __name__ == "__main__":
 
     TRAIN = create_avg_speed_cols(TRAIN)
 
-    TRAIN = modify_datetime(TRAIN)
-    TEST = modify_datetime(TEST)
+    TRAIN = modify_datetime_train(TRAIN)
+    TEST = modify_datetime_test(TEST)
 
     #reshape coordinates
     coords_train = np.vstack((TRAIN[['pickup_latitude', 'pickup_longitude']].values,
@@ -110,7 +111,5 @@ if __name__ == "__main__":
     imp_features.to_csv('feature_importances.csv')
 
     check_valid_test_dist(model, dtest, TEST, dvalid)
-    
-
     
     
