@@ -6,12 +6,16 @@ import seaborn as sns
 import pandas as pd
 
 def check_valid_test_dist(model, dtest, test, dvalid):
+    """assuming that the valid and test sets are iid,
+    distribution should be similar. save predictions to csv"""
+
     ypred = model.predict(dvalid)
     ytest = model.predict(dtest)
 
-    print('Test shape OK.') if test.shape[0] == ytest.shape[0] else print('Oops')
+    print('Test shape OK.') if test.shape[0] == ytest.shape[0] else print('Recheck work, something is not right')
     test['trip_duration'] = np.exp(ytest) - 1
-    test[['id', 'trip_duration']].to_csv('allen_xgb_submission.csv.gz', index=False, compression='gzip')
+    test[['id', 'trip_duration']].to_csv('allen_xgb_submission.csv.gz',
+                                         index=False, compression='gzip')
 
     print('Valid prediction mean: %.3f' % ypred.mean())
     print('Test prediction mean: %.3f' % ytest.mean())
@@ -22,9 +26,11 @@ def check_valid_test_dist(model, dtest, test, dvalid):
     ax[0].legend(loc=0)
     ax[1].legend(loc=0)
     plt.savefig('Validation and Test Distributions.png')
-    
 
 def check_train_test_dist(train, test, features_used):
+    """assume training and testing sets are iid. check this is
+    case before modeling"""
+
     feature_stats = pd.DataFrame({'feature': features_used})
     feature_stats.loc[:, 'train_mean'] = np.nanmean(train[features_used].values, axis=0).round(4)
     feature_stats.loc[:, 'test_mean'] = np.nanmean(test[features_used].values, axis=0).round(4)
@@ -32,10 +38,15 @@ def check_train_test_dist(train, test, features_used):
     feature_stats.loc[:, 'train_std'] = np.nanstd(train[features_used].values, axis=0).round(4)
     feature_stats.loc[:, 'test_std'] = np.nanstd(test[features_used].values, axis=0).round(4)
 
-    feature_stats.loc[:, 'train_nan'] = np.mean(np.isnan(train[features_used].values), axis=0).round(3)
-    feature_stats.loc[:, 'test_nan'] = np.mean(np.isnan(test[features_used].values), axis=0).round(3)
+    feature_stats.loc[:, 'train_nan'] = np.mean(np.isnan(train[features_used].values),
+                                                axis=0).round(3)
 
-    feature_stats.loc[:, 'train_test_mean_diff'] = np.abs(feature_stats['train_mean'] - feature_stats['test_mean']) / np.abs(feature_stats['train_std'] + feature_stats['test_std'])  * 2
+    feature_stats.loc[:, 'test_nan'] = np.mean(np.isnan(test[features_used].values),
+                                               axis=0).round(3)
+
+    feature_stats.loc[:, 'train_test_mean_diff'] = np.abs(feature_stats['train_mean'] -
+                                                          feature_stats['test_mean']) / np.abs(feature_stats['train_std'] + feature_stats['test_std'])  * 2
+    
     feature_stats.loc[:, 'train_test_nan_diff'] = np.abs(feature_stats['train_nan'] - feature_stats['test_nan'])
     feature_stats = feature_stats.sort_values(by='train_test_mean_diff')
     feature_stats[['feature', 'train_test_mean_diff']].tail()
