@@ -1,11 +1,11 @@
 """create additional features"""
 
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 
-
 def create_cols_distances(df):
+    """distance may be a critical feature for predicting trip durations.
+    creating a haversine distance, manhattan distance and bearing (direction the car is heading)"""
     #create a column for haversine distance
     df['distance'] = haversine_array(df['pickup_longitude'], df['pickup_latitude'],
                                      df['dropoff_longitude'], df['dropoff_latitude'])
@@ -20,21 +20,19 @@ def create_cols_distances(df):
 
 
 def create_avg_speed_cols(df):
+    """since we have distance and duration, we can calculated an additional feature
+    of speed"""
     #create speed column. this should be correlated with the day component
     #and may give additional insight
     df['avg_speed_haversine'] = 1000*df['distance'].values/df['trip_duration']
     df['avg_speed_manhattan'] = 1000*df['manhattan_distance'].values/df['trip_duration']
 
-    return df 
+    return df
 
 
 def haversine_array(lon1, lat1, lon2, lat2):
-    """
-    Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees)
-
-    All args must be of equal length.    
-
+    """Calculate the great circle distance between two points on the earth 
+    (specified in decimal degrees) All args must be of equal length.
     """
     R = 6371.0  # radius of the earth in km
 
@@ -57,7 +55,6 @@ def dummy_manhattan_distance(lat1, lng1, lat2, lng2):
 
 def bearing_array(lat1, lng1, lat2, lng2):
     """calculates direction the taxi is traveling"""
-    AVG_EARTH_RADIUS = 6371  # in km
     lng_delta_rad = np.radians(lng2 - lng1)
     lat1, lng1, lat2, lng2 = map(np.radians, (lat1, lng1, lat2, lng2))
     y = np.sin(lng_delta_rad) * np.cos(lat2)
@@ -66,68 +63,69 @@ def bearing_array(lat1, lng1, lat2, lng2):
 
 
 def convert_time_sin_cos(df, column):
+    """need to convert time to a cyclical form to help the algorithm learn that
+    23 hours and 0 hours are closed to each other"""
     sin_var = np.sin(2 * np.pi * df[column]/23.0)
     cos_var = np.cos(2 * np.pi * df[column]/23.0)
 
     return sin_var, cos_var
 
 def find_center_points(df, lat1, long1, lat2, long2):
+    """see if center points help us in predicting trip duration"""
     df['center_latitude'] = (df[lat1].values + df[long2].values) / 2
     df['center_longitude'] = (df[long1].values + df[lat2].values) / 2
 
     return df
 
+def modify_datetime_test(df):
+    """created this separate function because testing set does not have dropoff datetime."""
 
-def modify_datetime(df):
+    df['pickup_hour'] = pd.to_datetime(df['pickup_datetime']).dt.hour
+    df['pickup_minute'] = pd.to_datetime(df['pickup_datetime']).dt.minute
+    df['pickup_hour_sin'], df['pickup_hour_cos'] = convert_time_sin_cos(df, 'pickup_hour')
+    df['pickup_date'] = pd.to_datetime(df['pickup_datetime']).dt.date
+    df['pickup_day'] = pd.to_datetime(df['pickup_datetime']).dt.weekday
+    df['pickup_day'] = pd.to_datetime(df['pickup_datetime']).dt.weekday
+    df['pickup_weekofyear'] = pd.to_datetime(df['pickup_datetime']).dt.weekofyear
+    df["month"] = pd.to_datetime(df['pickup_datetime']).dt.month
+    df["year"] = pd.to_datetime(df['pickup_datetime']).dt.year
+    return df
+
+
+def modify_datetime_train(df):
+    """creating additional time features for training set"""
+
     df['pickup_hour'] = pd.to_datetime(df['pickup_datetime']).dt.hour
 
-    #test set does not have dropoff_datetime
-    try: 
-        df['dropoff_hour'] = pd.to_datetime(df['dropoff_datetime']).dt.hour
-    except:
-        pass
+    df['dropoff_hour'] = pd.to_datetime(df['dropoff_datetime']).dt.hour
 
-    df['pickup_minute'] = pd.to_datetime(df['pickup_datetime']).dt.minute 
+    df['pickup_minute'] = pd.to_datetime(df['pickup_datetime']).dt.minute
 
-    try:
-        df['dropoff_minute'] = pd.to_datetime(df['dropoff_datetime']).dt.minute
-    except:
-        pass
+    df['dropoff_minute'] = pd.to_datetime(df['dropoff_datetime']).dt.minute
 
     df['pickup_hour_sin'], df['pickup_hour_cos'] = convert_time_sin_cos(df, 'pickup_hour')
 
-    try:
-        df['dropoff_hour_sin'], df['dropoff_hour_cos'] = convert_time_sin_cos(df, 'dropoff_hour')
-    except:
-        pass
+    df['dropoff_hour_sin'], df['dropoff_hour_cos'] = convert_time_sin_cos(df, 'dropoff_hour')
+
     #split datetime between dates and time
-    #using normalize even though it gives us 0:00 time, but the resulting column is a datetime object, which allows us to further process
-    #for day of week
+    #using normalize even though it gives us 0:00 time, but the resulting column is a datetime object,
+    #which allows us to further process for day of week
     df['pickup_date'] = pd.to_datetime(df['pickup_datetime']).dt.date
 
-    try:
-        df['dropoff_date'] = pd.to_datetime(df['dropoff_datetime']).dt.date
-    except:
-        pass
-     
+    df['dropoff_date'] = pd.to_datetime(df['dropoff_datetime']).dt.date
+
     #create day of the week for both pickup date and dropoff dates
     df['pickup_day'] = pd.to_datetime(df['pickup_datetime']).dt.weekday
 
-    try:
-        df['dropoff_day'] = pd.to_datetime(df['dropoff_datetime']).dt.weekday
-    except:
-        pass
+    df['dropoff_day'] = pd.to_datetime(df['dropoff_datetime']).dt.weekday
 
-    #get week of year to capture effects of holidays 
+    #get week of year to capture effects of holidays
     df['pickup_weekofyear'] = pd.to_datetime(df['pickup_datetime']).dt.weekofyear
 
     df["month"] = pd.to_datetime(df['pickup_datetime']).dt.month
 
     df["year"] = pd.to_datetime(df['pickup_datetime']).dt.year
     #one hot encode day of the week for both pickup and dropoff
-    try:
-        df = pd.get_dummies(df, columns=['pickup_day', 'dropoff_day'])
-    except:
-        pass
+    df = pd.get_dummies(df, columns=['pickup_day', 'dropoff_day'])
 
-    return df 
+    return df
