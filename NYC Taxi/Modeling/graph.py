@@ -5,6 +5,8 @@ import numpy as np
 
 
 def graph_train_test_maps(train, test, lat, long):
+    """sanity check to make sure that distribution
+    of testing points on map is similar to training points"""
     city_long_border = (-74.03, -73.75)
     city_lat_border = (40.63, 40.85)
     fig, ax = plt.subplots(ncols=2, sharex=True, sharey=True)
@@ -26,6 +28,9 @@ def graph_train_test_maps(train, test, lat, long):
 
 
 def graph_train_test_trips(train, test, column):
+    """line graphs showing movement on the amount
+    of trips over time for both the training set and
+    testing set"""
     plt.plot(train.groupby(column).count()[['id']], 'o-', label='train')
     plt.plot(test.groupby(column).count()[['id']], 'o-', label='test')
     plt.title('Trips over Time')
@@ -36,8 +41,12 @@ def graph_train_test_trips(train, test, column):
     return None
 
 def graph_trip_dist(df, column):
+    """taking the log trip of durations to see if it 
+    is normally distributed"""
     df['log_trip_duration'] = np.log(df[column].values + 1)
     plt.hist(df['log_trip_duration'].values, bins=100)
     plt.xlabel('log(trip_duration)')
     plt.ylabel('number of train records')
     plt.savefig('Log Distribution of Trip Duration.png')
+
+    return None
