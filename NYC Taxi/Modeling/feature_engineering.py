@@ -1,17 +1,20 @@
-import pandas as pd 
+"""create additional features"""
+
+import pandas as pd
 import matplotlib.pyplot as plt
-from IPython.core.pylabtools import figsize
 import numpy as np
-import seaborn as sns
 
 
 def create_cols_distances(df):
     #create a column for haversine distance
-    df['distance'] = haversine_array(df['pickup_longitude'], df['pickup_latitude'], df['dropoff_longitude'], df['dropoff_latitude'])
+    df['distance'] = haversine_array(df['pickup_longitude'], df['pickup_latitude'],
+                                     df['dropoff_longitude'], df['dropoff_latitude'])
 
-    df['manhattan_distance'] = dummy_manhattan_distance(df['pickup_longitude'], df['pickup_latitude'], df['dropoff_longitude'], df['dropoff_latitude'])
+    df['manhattan_distance'] = dummy_manhattan_distance(df['pickup_longitude'], df['pickup_latitude'],
+                                                        df['dropoff_longitude'], df['dropoff_latitude'])
 
-    df['bearing'] = bearing_array(df['pickup_longitude'], df['pickup_latitude'], df['dropoff_longitude'], df['dropoff_latitude'])
+    df['bearing'] = bearing_array(df['pickup_longitude'], df['pickup_latitude'],
+                                  df['dropoff_longitude'], df['dropoff_latitude'])
 
     return df
 
