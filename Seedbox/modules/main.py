@@ -6,10 +6,10 @@ import pandas as pd
 
 from dataframe import jn_df_n_rmv_empty_rws,\
                       split_df_usr_group_trans,\
-                      group_sample_id_n_col,\
+                      group_smpl_id_n_col,\
                       state_cols_keep
 
-from histograms_data_prep import get_ls_trans_amts_tst_con
+from data_prep import get_ls_trans_amts_tst_con
 from plot import create_histograms
 from statistics import calc_tval_n_degfree
 
@@ -40,11 +40,11 @@ if __name__ == "__main__":
     """
     Question 2
     """
-    REBILL_tst_grp, REBILL_ctrl_grp = split_df_usr_group_trans(dataframe=df_prcsd,
+    REBILL_tst_grp, REBILL_ctrl_grp = split_df_usr_group_trans(df=df_prcsd,
                                                                column_to_bifurcate='transaction_type',
                                                                user_group_to_bifurcate='test_group',
-                                                               subtrans_type_to_bifurcate='REBILL',
-                                                               column_to_drop1=None, column_to_drop2=None)
+                                                               subtrans_typ_split='REBILL',
+                                                               col_drop1=None, col_drop2=None)
 
     #further prune down the dataframe to only the columns we want
     REBILL_tst_grp = state_cols_keep(REBILL_tst_grp, ['sample_id',
@@ -63,12 +63,12 @@ if __name__ == "__main__":
     """
     Question 3
     """
-    trans_amt_tst, trans_amt_ctrl = split_df_usr_group_trans(dataframe=df_prcsd,
+    trans_amt_tst, trans_amt_ctrl = split_df_usr_group_trans(df=df_prcsd,
                                                              column_to_bifurcate='sample_id',
                                                              user_group_to_bifurcate='test_group',
-                                                             subtrans_type_to_bifurcate=None,
-                                                             column_to_drop1='transaction_id',
-                                                             column_to_drop2='transaction_type')
+                                                             subtrans_typ_split=None,
+                                                             col_drop1='transaction_id',
+                                                             col_drop2='transaction_type')
 
     trans_amt_tst = state_cols_keep(trans_amt_tst, ['sample_id',
                                                     'test_group',
@@ -103,12 +103,12 @@ if __name__ == "__main__":
     #Note that we can use variables: REBILL_tst_grp, REBILL_ctrl_grp defined above,
     #get something similar for CHARGEBACK and then merge the resulting dataframes,
     #based on user group
-    CHRGBCK_tst, CHRGBCK_ctrl = split_df_usr_group_trans(dataframe=df_prcsd,
+    CHRGBCK_tst, CHRGBCK_ctrl = split_df_usr_group_trans(df=df_prcsd,
                                                          column_to_bifurcate='transaction_type',
                                                          user_group_to_bifurcate='test_group',
-                                                         subtrans_type_to_bifurcate='CHARGEBACK',
-                                                         column_to_drop1='transaction_id',
-                                                         column_to_drop2='transaction_amount')
+                                                         subtrans_typ_split='CHARGEBACK',
+                                                         col_drop1='transaction_id',
+                                                         col_drop2='transaction_amount')
 
     #get a count by transaction type grouping on sample_id, for each user group
     CHRGBCK_tst_smpl_id, CHRGBCK_ctrl_smpl_id = group_sample_id_n_col(CHRGBCK_tst,
