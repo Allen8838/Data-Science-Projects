@@ -1,23 +1,27 @@
+"""
+calculate t value and degrees of freedom
+"""
 import math
 
 
-def calculate_t_value_n_degrees_of_freedom(dataframe_test_groupby_sample_id, dataframe_control_groupby_sample_id):
-    standard_deviation_count_test = dataframe_test_groupby_sample_id.std()
-    standard_deviation_count_control = dataframe_control_groupby_sample_id.std()
+def calc_tval_n_degfree(tst_smpl_id, ctrl_smpl_id):
+    std_dev_cnt_tst = tst_smpl_id.std()
+    std_dev_cnt_ctrl = ctrl_smpl_id.std()
 
-    mean_count_test = dataframe_test_groupby_sample_id.mean()
-    mean_count_control = dataframe_control_groupby_sample_id.mean()
+    mean_count_test = tst_smpl_id.mean()
+    mean_count_control = ctrl_smpl_id.mean()
 
     #we want the number of unique person per user group, not the total number of rebills
-    number_of_samples_test = dataframe_test_groupby_sample_id.shape[0]
-    number_of_samples_control = dataframe_control_groupby_sample_id.shape[0]
+    num_smpl_tst = tst_smpl_id.shape[0]
+    num_smpl_ctrl = ctrl_smpl_id.shape[0]
 
-    #null hypothesis is that the mean count REBILL of test group is less than or equal to the mean value of the control group. setting up the
-    #null hypothesis this way will make it clearer if we do reject the null, that the mean count of test group is larger than the control group
+    #null hypothesis is that the mean count REBILL of test group is less than or equal
+    #to the mean value of the control group. setting up the null hypothesis this way will
+    #make it clearer if we do reject the null, that the mean count of test group is larger
+    #than the control group
+    std_err = math.sqrt(((std_dev_cnt_tst**2)/num_smpl_tst)+((std_dev_cnt_ctrl**2)/num_smpl_ctrl))
+    t_value = (mean_count_test- mean_count_control)/std_err
 
-    standard_error = math.sqrt(((standard_deviation_count_test**2)/number_of_samples_test)+((standard_deviation_count_control**2)/number_of_samples_control))
-    t_value = (mean_count_test- mean_count_control)/standard_error
+    degfree = num_smpl_tst + num_smpl_ctrl - 2
 
-    degrees_of_freedom = number_of_samples_test + number_of_samples_control - 2
-
-    return t_value, degrees_of_freedom
+    return t_value, degfree
