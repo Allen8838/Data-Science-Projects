@@ -1,113 +1,74 @@
-"""main module to run submodules"""
+"""
+main module to run submodules
+"""
+
 import sys
-from collections import OrderedDict
-import pandas as pd
 
-from data_cleaning import place_orig_clean_names_to_ls, replace_messy_w_clean_names, convert_names_to_lowercase, convert_unix_time_to_utc_time
-from senders import create_dict_senders_num_msgs
-from recipients import cnt_msgs_recvd_by_each_recip, coll_cols_rows_tsenders_recip, parse_recipients
-from senders_recipients import find_top_senders, create_recip_sender_time
-from plot import graph_top_senders, find_uni_num_msgs_uni_time_per, graph_tsenders_uni_msgs
+from data_cleaning import get_preprocessed_input_data
+from count_messages import count_msgs_received_by_each_recip,\
+                           count_num_msgs_sent_by_sender,\
+                           count_num_msgs_sent_at_one_time
+from dataframe_processing import parse_recipients
+from write import write_to_csv
+from dictionary import create_union_of_keys
+from find import find_top_senders_and_unique_recipients
+from plot import graph_top_senders, graph_top_senders_with_unique_msgs
 
-def exec_q1(csv_file):
-    """clean data first, create file for question 1 and
-    create intermediary values for questions 2 and 3"""
-    number_of_senders_to_look = 5
+def create_csv_and_return_top_senders(df, dict_orig_cleaned_names, num_senders_to_look):
+    """
+    creates the csv file for question 1 and returns top senders, which we
+    will need for questions 2 and 3
+    """
+    # find the number of messages sent by sender
+    num_msgs_sent_by_sender = count_num_msgs_sent_by_sender(df)
 
-    #read in the dataset given and add headers
-    df = pd.read_csv(csv_file, names=['time',
-                                      'message_id',
-                                      'sender',
-                                      'recipients',
-                                      'topic',
-                                      'mode'])
-    #read in dataset created to clean the dataset given file
-    df_dict_to_clean_names = pd.read_csv(r'Dictionary-to-clean-names.csv')
-
-    #some sender names are not in a consistent format. placing sender names
-    #in original file as well as a cleanup name list into lists.
-    orig_names, cleaned_names = place_orig_clean_names_to_ls(df_dict_to_clean_names)
-
-    #used dict so that we can use map function to clean names
-    dict_orig_cleaned_names = dict(zip(orig_names, cleaned_names))
-
-    df = replace_messy_w_clean_names(df, dict_orig_cleaned_names, 'sender')
-
-    #converting all names to the same case so that same names of different cases
-    #will be grouped together
-    df = convert_names_to_lowercase(df, 'sender')
-
-    #converting the time from milliseconds to date (without time). having just the date
-    #will make it easier to graph the data for questions 2 and 3
-    df = convert_unix_time_to_utc_time(df, 'time')
-
-    #senders_num_msgs_per_time will be used for question 2.
-    #senders_time will be used for question 3
-    num_msgs_sent_sender, senders_num_msgs_per_time, senders_time = create_dict_senders_num_msgs(df)
-
-    #sort by value in descending order. this will then be placed directly onto the CSV file.
-    # we will also know who are the top 5 senders from sorting this first
-    num_msgs_sent_sender_desc = OrderedDict(sorted(num_msgs_sent_sender.items(),
-                                                   key=lambda t: t[1],
-                                                   reverse=True))
-
+    # find the number of messages received by recipient
     parse_recip_df = parse_recipients(df, dict_orig_cleaned_names)
 
-    msgs_rcvd_by_recip = cnt_msgs_recvd_by_each_recip(parse_recip_df)
+    msgs_received_by_recip = count_msgs_received_by_each_recip(parse_recip_df)
 
-    num_msgs_sent_n_rcvd_per = []
-    #size of msgs_rcvd_by_recip is larger than size of num_msgs_sent_sender_desc.
-    #need to union the keys of these two dictionaries the top 5 senders will be
-    #in this dictionary, so need to append the list with this dictionary first
-    for key in num_msgs_sent_sender_desc:
-        #getting the union of the keys in both dictionaries, so will only append
-        #if the key DOESN'T already exist in the list
-        if key not in num_msgs_sent_n_rcvd_per:
-            num_msgs_sent_n_rcvd_per.append(key)
+    union_of_all_keys = create_union_of_keys(num_msgs_sent_by_sender, msgs_received_by_recip)
 
-    for key in msgs_rcvd_by_recip:
-        if key not in num_msgs_sent_n_rcvd_per:
-            num_msgs_sent_n_rcvd_per.append(key)
+    # creates the file asked for Question 1
+    write_to_csv(num_msgs_sent_by_sender,
+                 msgs_received_by_recip,
+                 union_of_all_keys)
 
-    #creates the file asked for Question 1 and returns a list of the top 5 senders for question 2
-    top_five_senders = find_top_senders(num_msgs_sent_sender_desc,
-                                        msgs_rcvd_by_recip,
-                                        num_msgs_sent_n_rcvd_per,
-                                        number_of_senders_to_look)
+    # return a list of the top senders for Question 2
+    top_senders = union_of_all_keys[:num_senders_to_look]
 
-    #top_five_senders, senders_num_msgs_per_time for question 2
-    #return senders_time and parse_recip_df for question 3
-    return top_five_senders, senders_num_msgs_per_time, senders_time, parse_recip_df
+    return top_senders
 
-#perform datacleaning of parse_recip_df. should speed up execution of
-#question 1 as the memory generated from this helper function
-#will be released upon exit of the function
+def visualize_number_msgs_sent_by_top_senders(senders_time, top_senders):
+    """
+    create graph over time of the top senders and number of messages sent
+    """
+    num_msgs_sent_at_one_time = count_num_msgs_sent_at_one_time(senders_time)
+
+    graph_top_senders(top_senders, num_msgs_sent_at_one_time)
 
 
-def exec_q2(top_five_senders, senders_num_msgs_per_time):
-    """create graph over time of the top senders and number of messages sent"""
-    graph_top_senders(top_five_senders, senders_num_msgs_per_time)
-
-
-def exec_q3(top_five_senders, senders_time, parse_recip_df):
-    """perform additional processing of the expanded recipient dataframe columns.
-    find top senders and the unique number of recipients they sent messages to and
-    graph results"""
-    mod_recip_df, col_n_rows_w_top_senders = coll_cols_rows_tsenders_recip(parse_recip_df,
-                                                                           top_five_senders)
-
-    recip_sender_time_sorted = create_recip_sender_time(senders_time,
-                                                        mod_recip_df,
-                                                        col_n_rows_w_top_senders,
-                                                        top_five_senders)
-
-    tsender_uni_num_msgs_uni_time = find_uni_num_msgs_uni_time_per(top_five_senders,
-                                                                   recip_sender_time_sorted)
-    graph_tsenders_uni_msgs(tsender_uni_num_msgs_uni_time)
+def visualize_unique_emails_received_by_top_senders(df, top_senders, dict_orig_cleaned_names):
+    """
+    create graph over time of the top senders and
+    number of unique recipient emails received
+    """
+    top_sender_uni_num_msgs_uni_time = find_top_senders_and_unique_recipients(df,
+                                                                              senders_time,
+                                                                              TOP_SENDERS,
+                                                                              dict_orig_cleaned_names)
+    graph_top_senders_with_unique_msgs(top_sender_uni_num_msgs_uni_time)
 
 
 if __name__ == "__main__":
     CSV_FILE = sys.argv[1]
-    TOP_FIVE_SENDERS, SENDERS_NUM_MSGS_PER_TIME, SENDERS_TIME, PARSE_RECIP_DF = exec_q1(CSV_FILE)
-    exec_q2(TOP_FIVE_SENDERS, SENDERS_NUM_MSGS_PER_TIME)
-    exec_q3(TOP_FIVE_SENDERS, SENDERS_TIME, PARSE_RECIP_DF)
+    df, dict_orig_cleaned_names, senders_time = get_preprocessed_input_data(CSV_FILE)
+
+    # Answer to Question 1
+    TOP_SENDERS = create_csv_and_return_top_senders(df, dict_orig_cleaned_names, 5)
+
+    # Answer to Question 2
+    visualize_number_msgs_sent_by_top_senders(senders_time, TOP_SENDERS)
+
+    # Answer to Question 3 - Need a helper function first before graphing
+    visualize_unique_emails_received_by_top_senders(df, TOP_SENDERS, dict_orig_cleaned_names)
