@@ -4,6 +4,23 @@ from io import StringIO
 import pandas as pd
 import plotly.graph_objs as go
 from plotly.offline import plot
+import matplotlib.pyplot as plt
+import itertools
+import seaborn as sns
+
+
+states = [u'California', u'Texas', u'New York', u'Florida', u'North Carolina',
+       u'Illinois', u'Georgia', u'South Carolina', u'Michigan',
+       u'Pennsylvania', u'Massachusetts', u'Indiana', u'Oklahoma',
+       u'Washington', u'Ohio', u'New Jersey', u'Missouri', u'Arizona',
+       u'Virginia', u'Louisiana', u'Tennessee', u'Utah', u'Wisconsin',
+       u'Connecticut', u'Alabama', u'Maryland', u'Nevada', u'Oregon',
+       u'Colorado', u'Mississippi', u'Minnesota', u'Kentucky', u'Arkansas',
+       u'Hawaii', u'Idaho', u'Maine', u'Kansas', u'Iowa',
+        u'New Mexico', u'West Virginia', u'Alaska',
+       u'New Hampshire', u'Delaware', u'Rhode Island', u'Nebraska',
+       u'South Dakota', u'Montana', u'North Dakota', u'Vermont', u'Wyoming'][:30]
+
 
 statesll=StringIO("""State,Latitude,Longitude
 Alabama,32.806671,-86.791130
@@ -93,6 +110,30 @@ def plot_teachers_posting_first_project(df, column):
     x = t.index
     y = t.values
     bar_ver_noagg(x, y, 'Date & Teacher First Projects', 'orange')
+
+
+def plot_funded_amount_by_states(df):
+    length = len(states)
+    plt.figure(figsize=(16, 24))
+    for i, j in itertools.zip_longest(states, range(length)):
+        plt.subplot(10, 6, j+1)
+        temp = dict(df[df['School State']==i]['Project Current Status'].value_counts())
+
+        temp['Not Funded'] = temp['Expired']
+        temp['Total'] = temp['Fully Funded'] + temp['Not Funded']
+        temp1 = {'Funded' : float(temp['Fully Funded'])*100/temp['Total'], 'Not Funded' :float(temp['Not Funded'])*100/temp['Total']}
+
+        ax = sns.barplot(list(temp1.keys()), list(temp1.values()), alpha=0.7, palette='cool')
+        ax.grid(False)
+
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+        plt.subplots_adjust(wspace = 0.8, hspace = 1)
+        plt.title(i, color = 'black')
+    
+    plt.savefig('Funded amount by states.png')
+
 
 def plot_distribution_of_project_type_and_status(df, project_type, project_status):
     temp = df[project_type].value_counts()
