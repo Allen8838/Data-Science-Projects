@@ -1,7 +1,9 @@
 import folium
 from folium import plugins
 from io import StringIO
-import pandas as pd 
+import pandas as pd
+import plotly.graph_objs as go
+from plotly.offline import plot
 
 statesll=StringIO("""State,Latitude,Longitude
 Alabama,32.806671,-86.791130
@@ -71,7 +73,86 @@ def plot_to_us_map(df, column):
         row = list(row)
         folium.CircleMarker([float(row[1]), float(row[2])], popup='<b>State:</b>' + row[0].title()+'<br> <b>Donors:</b> '+str(int(row[3])), radius=float(row[3])*0.0001, color='#be0eef', fill=True).add_to(map4)
 
-    return map4
+    map4.save('Donor State.html')
+    return None
 
+
+def bar_ver_noagg(x, y, title, color, w=None, h=None, lm=0, rt=False):
+    trace = go.Bar(y=y, x=x, marker=dict(color=color))
+
+    if rt:
+        return trace
+    layout = dict(title=title, margin=dict(l=lm), width=w, height=h)
+    data = [trace]
+    fig = go.Figure(data=data, layout=layout)
+
+    plot(fig)
+
+def plot_teachers_posting_first_project(df, column):
+    t = df[column].value_counts()
+    x = t.index
+    y = t.values
+    bar_ver_noagg(x, y, 'Date & Teacher First Projects', 'orange')
+
+def plot_distribution_of_project_type_and_status(df, project_type, project_status):
+    temp = df[project_type].value_counts()
+    values1 = temp.values
+    index1 = temp.index
+
+    temp = df[project_status].value_counts()
+    values2 = temp.values
+    index2 = temp.index
+
+    domain1 = {'x': [0.2, 0.50], 'y':[0.0, 0.33]}
+    domain2 = {'x': [0.8, 0.50], 'y':[0.0, 0.33]}
+
+    fig = {
+        "data": [
+            {
+                "values": values1,
+                "labels": index1,
+                "domain": {"x": [0, .48]},
+                "marker": dict(colors=["#f77b9c", "#ab97db", '#b0b1b2']),
+                "name": "Project Type",
+                "hoverinfo": "label+percent+name",
+                "hole": 0.7,
+
+                "type": "pie"
+            },
+            {
+                "values":values2,
+                "labels": index2,
+                "marker": dict(colors=["#efbc56", "#81a7e8", "#e295d0"]),
+                "domain": {'x': [0.52, 1]},
+                #"text": "CO2",
+                "textposition":"inside",
+                "name": "Project Status",
+                "hole": 0.7,
+                "type": "pie"
+            }],
+            "layout":{
+                "annotations": [
+                    {
+                        "font":{
+                            "size":20
+                        },
+                        "showarrow":False,
+                        "text": "Type",
+                        "x": 0.21,
+                        "y": 0.5
+                    },
+                    {
+                        "font": {
+                            "size": 20
+                        },
+                        "showarrow": False,
+                        "text": "Status",
+                        "x": 0.8,
+                        "y": 0.5
+                    }
+                ]
+            }
+    }
+    plot(fig, filename='donut')
 
 
