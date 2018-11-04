@@ -7,6 +7,9 @@ from plotly.offline import plot
 import matplotlib.pyplot as plt
 import itertools
 import seaborn as sns
+from collections import Counter 
+
+from wordcloud import WordCloud, STOPWORDS
 
 
 states = [u'California', u'Texas', u'New York', u'Florida', u'North Carolina',
@@ -133,6 +136,19 @@ def plot_funded_amount_by_states(df):
         plt.title(i, color = 'black')
     
     plt.savefig('Funded amount by states.png')
+        
+
+def plot_project_title_to_world_cloud(df):
+    text = " ".join(df['Project Title']).lower()
+    for w in ['need', 'student', 'classroom']:
+        text = text.replace(w, "")
+    wc = WordCloud(max_words=1200, stopwords=STOPWORDS, colormap='cool', background_color='White', mask=mask).generate(text)
+    plt.figure(figsize=(13,13))
+    plt.imshow(wc)
+    plt.axis('off')
+    plt.title('')
+    plt.savefig('WordCloud.png')
+
 
 
 def plot_distribution_of_project_type_and_status(df, project_type, project_status):
