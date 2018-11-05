@@ -150,6 +150,42 @@ def plot_project_title_to_world_cloud(df):
     plt.savefig('WordCloud.png')
 
 
+def plot_time_taken_to_fully_fund_projects(df):
+    funding_time = df[df['Project Current Status'] == 'Fully Funded']
+    funding_time['Project Fully Funded Date'] = pd.to_datetime(funding_time['Project Fully Funded Date'])
+    funding_time['Project Posted Date'] = pd.to_datetime(funding_time['Project Posted Date'])
+    funding_time['Days Elapsed'] = funding_time['Project Fully Funded Date'] - funding_time['Project Posted Date']
+    funding_time['Days Elapsed'] = funding_time['Days Elapsed'].dt.days
+    plt.figure(figsize=(18,6))
+    funding_time['Days Elapsed'].hist(bins=20, edgecolor='black')
+    plt.xlabel('Days')
+    plt.title('Distribution of time for Full Project Funding')
+    plt.savefig('Distribution of time for Full Project Funding.png')
+
+
+def plot_funded_projects_by_states(projects_df, schools_df):
+    schools_states = projects_df[['School ID', 'Project Current Status']].merge(schools_df[['School ID', 'School State']], left_on='School ID', right_on='School ID', how='left')
+    state_total = schools_states.groupby('School State')['Project Current Status'].count().reset_index()
+    state_fund = schools_states[schools_states['Project Current Status']=='Fully Funded'].groupby('School State')['Project Current Status'].count().reset_index()
+
+    state_total = state_total.merge(state_fund, left_on='School State', right_on='School State', how='left')
+    state_total.rename({'Project Current Status_x': 'Total', 'Project Current Status_y':'Funded'}, axis=1, inplace=True)
+
+    state_total['%Funded'] = (state_total['Funded'])/state_total['Total']
+
+    plt.figure(figsize=(20, 20))
+    plt.scatter('Funded', '%Funded', data=state_total, s=state_total['%Funded']*750)
+
+    for i in range(state_total.shape[0]):
+        plt.text(state_total['Funded'].values[i], state_total['%Funded'].values[i], s=state_total['School State'].values[i], color='r', size=15)
+    
+    plt.xlabel('No of Funded Projects')
+    plt.ylabel('% Funded Projects')
+    plt.title('Funded Projects by States')
+
+    plt.savefig('Funded Projects by States.png')
+
+    
 
 def plot_distribution_of_project_type_and_status(df, project_type, project_status):
     temp = df[project_type].value_counts()
