@@ -42,6 +42,10 @@ donations_full_df = donations_df\
                     .groupby(['Donor ID', 'Project ID'])['eventStrength'].sum()\
                     .apply(smooth_donor_preference).reset_index()
 
+# donations_full_df will look in the form of 
+
+# Donor ID,                           Project ID,                          eventStrength
+# 00000ce845c00cbf0686c992fc369df4, 5bab6101eed588c396a59f6bd64274b6,    5.67242534197149
 
 # update project dataset
 # Not sure what this has accomplished
@@ -73,49 +77,75 @@ vectorizer = TfidfVectorizer(strip_accents='unicode',
 
 project_ids = projects['Project ID'].tolist()
 tfidf_matrix = vectorizer.fit_transform(text)
+
+# tfidf_matrix will look in the form of. this is a scipy sparse matrix
+#   (0, 86231)    0.18043116799737025
+#   (0, 81767)    0.1246356155583376
+#   (0, 22477)    0.2190395191964646
+#   (0, 21249)    0.26066742427773676
+#   (0, 81746)    0.4410626006376963
+#   and so on
+
 tfidf_feature_names = vectorizer.get_feature_names()
 
-def get_project_profile(project_id):
-    idx = project_ids.index(project_id)
-    project_profile = tfidf_matrix[idx:idx+1]
+# def get_project_profile(project_id):
+#     idx = project_ids.index(project_id)
+#     project_profile = tfidf_matrix[idx:idx+1]
 
-    return project_profile
+#     # project_profile will look in the form of. this is a scipy sparse matrix
+#     # (0, 106686)    0.10452968447326941
+#     # (0, 135238)    0.05905238364194011
+#     # (0, 71476)     0.02192229196906363
+#     # and so on
+
+# read the sparse matrix as
+# Assume general form: (A,B) C
+
+# A: Document index B: Specific word-vector index C: TFIDF score for word B in document A     
+
+#     return project_profile
 
 
-def get_project_profiles(ids):
-    project_profiles_list = [get_project_profile(x) for x in np.ravel([ids])]
+# def get_project_profiles(ids):
+#     project_profiles_list = [get_project_profile(x) for x in np.ravel([ids])]
     
-    project_profiles = scipy.sparse.vstack(project_profiles_list)
+#     project_profiles = scipy.sparse.vstack(project_profiles_list)
 
-    return project_profiles
+#     # project_profile will look in the form of 
+#     # (0, 106686)    0.10452968447326941
+#     # (0, 135238)    0.05905238364194011
+#     # (0, 71476)     0.02192229196906363
+#     # and so on
 
-def build_donors_profile(donor_id, donations_indexed_df):
-    donations_donor_df = donations_indexed_df.loc[donor_id] # get the group of rows of a given donor_id 
-    # donations_donor_df will come in the form of something like
-    # Project ID      ee8e7795....a60f
-    # eventStrength            6.65821
-    # Name          0014244b5a...cc2c7
+#     return project_profiles
 
-    donor_project_profiles = get_project_profiles(donations_donor_df['Project ID'])
+# def build_donors_profile(donor_id, donations_indexed_df):
+#     donations_donor_df = donations_indexed_df.loc[donor_id] # get the group of rows of a given donor_id 
+#     # donations_donor_df will come in the form of something like
+#     # Project ID      ee8e7795....a60f
+#     # eventStrength            6.65821
+#     # Name          0014244b5a...cc2c7
 
-    donor_project_strengths = np.array(donations_donor_df['eventStrength']).reshape(-1, 1) # come in the form of something like [[5.6724]]
+#     donor_project_profiles = get_project_profiles(donations_donor_df['Project ID'])
 
-    donor_project_strengths_weighted_avg = np.sum(donor_project_profiles.multiply(donor_project_strengths), axis=0)/(np.sum(donor_project_strengths)+1) # come in the form of something like [[0, 0, 0, ... 0, 0, 0]]
+#     donor_project_strengths = np.array(donations_donor_df['eventStrength']).reshape(-1, 1) # come in the form of something like [[5.6724]]
 
-    donor_profile_norm = sklearn.preprocessing.normalize(donor_project_strengths_weighted_avg)
+#     donor_project_strengths_weighted_avg = np.sum(donor_project_profiles.multiply(donor_project_strengths), axis=0)/(np.sum(donor_project_strengths)+1) # come in the form of something like [[0, 0, 0, ... 0, 0, 0]]
 
-    return donor_profile_norm
+#     donor_profile_norm = sklearn.preprocessing.normalize(donor_project_strengths_weighted_avg)
 
-def build_donors_profiles(donations_full_df):
-    donations_indexed_df = donations_full_df[donations_full_df['Project ID'].isin(projects['Project ID'])].set_index('Donor ID') # make sure that we filter out donations without a Project ID
+#     return donor_profile_norm
 
-    donor_profiles = {}
-    for donor_id in donations_indexed_df.index.unique(): # return unique values in the index
-        donor_profiles[donor_id] = build_donors_profile(donor_id, donations_indexed_df)
+# def build_donors_profiles(donations_full_df):
+#     donations_indexed_df = donations_full_df[donations_full_df['Project ID'].isin(projects['Project ID'])].set_index('Donor ID') # make sure that we filter out donations without a Project ID
 
-    return donor_profiles
+#     donor_profiles = {}
+#     for donor_id in donations_indexed_df.index.unique(): # return unique values in the index
+#         donor_profiles[donor_id] = build_donors_profile(donor_id, donations_indexed_df)
 
-build_donors_profiles(donations_full_df)
+#     return donor_profiles
+
+# build_donors_profiles(donations_full_df)
 
 
 # mydonor1 = "6d5b22d39e68c656071a842732c63a0c"
