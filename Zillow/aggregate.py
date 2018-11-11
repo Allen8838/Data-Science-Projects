@@ -4,6 +4,7 @@ import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import matplotlib.pyplot as plt
 import seaborn as sns
+from ggplot import *
 color = sns.color_palette()
 
 #pd.options.mode.chained_assignment = raise
@@ -133,4 +134,43 @@ for col in corr_zero_cols:
 # selected dataframe with high correlations 
 corr_df_sel = corr_df.ix[(corr_df['corr_values']>0.02)| (corr_df['corr_values'] < -0.01)]
 
+cols_to_use = corr_df_sel.col_labels.tolist()
+
+temp_df = train_df[cols_to_use]
+corrmat = temp_df.corr(method='spearman')
+f, ax = plt.subplots(figsize=(8, 8))
+
+sns.heatmap(corrmat, vmax=1., square=True)
+plt.title('Important variables correlation map', fontsize=15)
+plt.savefig('Important variables correlations heat map from 2016 training set.png')
+
+plt.figure(figsize=(12, 8))
+sns.countplot(x='bathroomcnt', data=train_df)
+plt.ylabel('Count', fontsize=12)
+plt.xlabel('Bathroom', fontsize=12)
+plt.title('Frequency of Bathroom count', fontsize=15)
+plt.savefig('Distribution of Bathroom Counts for training set 2016.png')
+
+plt.figure(figsize=(12, 8))
+sns.boxplot(x='bathroomcnt', y='logerror', data=train_df)
+plt.ylabel('Log error', fontsize=12)
+plt.xlabel('Bathroom Count', fontsize=12)
+plt.title('How log error changes with bathroom count?', fontsize=15)
+plt.savefig('Changes of log error with bathroom count training set 2016.png')
+
+plt.figure(figsize=(12, 8))
+sns.countplot(x='bedroomcnt', data=train_df)
+plt.ylabel('Frequency', fontsize=12)
+plt.xlabel('Bedroom Count', fontsize=12)
+plt.title('Frequency of Bedroom Count', fontsize=15)
+plt.savefig('Distribution of Bedroom Count training set 2016.png')
+
+plt.figure(figsize=(12, 8))
+sns.boxplot(x='bathroomcnt', y='logerror', data=train_df)
+plt.ylabel('Log error', fontsize=12)
+plt.xlabel('Bathroom Count', fontsize=12)
+plt.title('How log error changes with bathroom count?', fontsize=15)
+plt.savefig('How log error changes with bathroom count.png')
+
+ggplot(aes(x='latitude', y='longitude', color='logerror'), data=train_df) + geom_point() + scale_color_gradient(low = 'red', high = 'blue')
 
