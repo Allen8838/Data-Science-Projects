@@ -91,3 +91,173 @@ data = [trace]
 fig = dict(data=data, layout=layout)
 plot(fig)
 
+trace = go.Histogram(
+           x = train_data['ingredients'].str.len(),
+           xbins = dict(start=0, end=90, size=1),
+           marker = dict(color= '#7CFDF0'),
+           opacity = 0.75)
+
+data = [trace]
+
+layout = go.Layout(
+           title = 'Distribution of Recipe Length',
+           xaxis = dict(title='Number of ingredients'),
+           yaxis = dict(title= 'Count of recipes'),
+           bargap = 0.1,
+           bargroupgap = 0.2)
+
+fig = go.Figure(data=data, layout=layout)
+plot(fig)
+
+boxplotcolors = random_colours(21)
+labels = [i for i in train_data.cuisine.value_counts().index][::-1]
+data = []
+
+for i in range(20):
+    trace = go.Box(
+                y = train_data[train_data['cuisine'] == labels[i]]['ingredients'].str.len(), name= labels[i],
+                marker = dict(color=boxplotcolors[i]))
+    data.append(trace)
+
+layout = go.Layout(
+                title = 'Recipe Length Distribution by cuisine'
+)
+
+fig = go.Figure(data=data, layout=layout)
+
+plot(fig)
+
+# stores all ingredients in all recipes (with duplicates)
+allingredients = []
+for item in train_data['ingredients']:
+    for ingr in item:
+        allingredients.append(ingr)
+
+countingr = Counter()
+for ingr in allingredients:
+    countingr[ingr] += 1
+
+mostcommon = countingr.most_common(20)
+mostcommoningr = [i[0] for i in mostcommon]
+mostcommoningr_count = [i[1] for i in mostcommon]
+
+trace = go.Bar(
+            x = mostcommoningr_count[::-1],
+            y = mostcommoningr[::-1],
+            orientation = 'h', marker = dict(color = random_colours(20),
+            ))
+
+layout = go.Layout(
+            xaxis = dict(title='Number of occurences in all recipes (training sample)',),
+            yaxis = dict(title='Ingredient'),
+            title = '20 Most Common Ingredients', titlefont = dict(size=20),
+            margin = dict(l=150, r=10, b=60, pad=5),
+            width = 800, height = 500,
+)
+
+data = [trace]
+fig = go.Figure(data=data, layout=layout)
+plot(fig)
+
+def findnumingr(cuisine):
+    '''
+    Input: 
+        cuisine - cuisine category (e.g. greek, chinese, etc.)
+    Output:
+        The number of unique ingredients used in all recipes part of the given cuisine
+    '''
+    listofingr = []
+    for item in train_data[train_data['cuisine'] == cuisine]['ingredients']:
+        for ingr in item:
+            listofingr.append(ingr)
+    result = (cuisine, len(list(set(listofingr))))
+    return result
+
+
+cuisineallingr = []
+for i in labels:
+    cuisineallingr.append(findnumingr(i))
+
+trace = go.Bar(
+            x = [i[1] for i in cuisineallingr],
+            y = [i[0] for i in cuisineallingr],
+            orientation = 'h', marker = dict(color = random_colours(20),))
+
+layout = go.Layout(
+            xaxis = dict(title = 'Count of different ingredients', ),
+            yaxis = dict(title = 'Cuisine', ),
+            title = 'Number of all the different ingredients used in a given cuisine', titlefont = dict(size=20),
+            margin = dict(l=100, r=10, b=60, t=60),
+            width = 800, height = 500,
+)
+
+data = [trace]
+fig = go.Figure(data=data, layout=layout)
+plot(fig)
+
+# which ingredient occur in only one cuisine
+
+allingredients = list(set(allingredients)) # get all unique ingredients
+
+def cuisine_unique(cuisine, numingr, allingredients):
+    '''
+    Input:
+        cuisine - cuisine category (e.g. chinese)
+        numingr - how many specific ingredients do you want to see in the final result
+        allingredients - list containing all unique ingredients in the whole sample
+    Output:
+        dataframe giving information about the name of the specific ingredient and how many times it
+        occurs in the chosen cuisine (in descending order based on their counts)
+    '''
+    allother = []
+    for item in train_data[train_data.cuisine != cuisine]['ingredients']:
+        for ingr in item:
+            allother.append(ingr)
+    allother = list(set(allother))
+
+    specificonly = [x for x in allingredients if x not in allother]
+
+    mycounter = Counter()
+
+    for item in train_data[train_data.cuisine == cuisine]['ingredients']:
+        for ingr in item:
+            mycounter[ingr] += 1
+    keep = list(specificonly)
+
+    for word in list(mycounter):
+        if word not in keep:
+            del mycounter[word]
+    
+    cuisinespec = pd.DataFrame(mycounter.most_common(numingr), columns = ['ingredient', 'count'])
+
+    return cuisinespec
+
+cuisinespec = cuisine_unique('chinese', 10, allingredients)
+# print('The top 10 unique ingredients in Chinese cuisine are: ', cuisinespec)
+
+# Visualization of specific ingredients in the first 10 cuisines
+labels = [i for i in train_data.cuisine.value_counts().index][0:10]
+totalPlot = 10
+y = [[item]*2 for item in range(1, 10)]
+y = list(chain.from_iterable(y))
+z = [1,2]*int((totalPlot/2))
+
+fig = tools.make_subplots(rows=5, cols=2, subplot_titles=labels, specs= [[{}, {}], [{}, {}], [{}, {}], [{}, {}], [{}, {}]], horizontal_spacing=0.20)
+
+traces = []
+
+for i, e in enumerate(labels):
+    cuisinespec = cuisine_unique(e, 5, allingredients)
+    trace = go.Bar(
+            x = cuisinespec['count'].values[::-1],
+            y = cuisinespec['ingredient'].values[::-1],
+            orientation = 'h', marker = dict(color=random_colours(5),))
+    
+    traces.append(trace)
+
+for t, y, z in zip(traces, y, z):
+    fig.append_trace(t, y, z)
+    fig['layout'].update(height=800, width=840, margin=dict(l=265, r=5, b=40, t=90, pad=5), showlegend=False, title='Ingredients used only in one cuisine')
+
+plot(fig)
+
