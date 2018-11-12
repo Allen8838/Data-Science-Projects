@@ -32,38 +32,13 @@ warnings.filterwarnings('ignore')
 train_data = pd.read_json('data/train.json')
 test_data = pd.read_json('data/test.json')
 
+from color import random_colours
+from table import table_of_cuisine_occurences
+
 print(train_data.info())
 
 print('Number of unique dishes: {}'.format(len(train_data.cuisine.unique())))
 
-def random_colours(number_of_colors):
-    '''
-    number_of_colors - number of colors that are generated
-    Output: color in the following format ['#E86DA4']
-    '''
-    colors = []
-    for i in range(number_of_colors):
-        colors.append('#'+''.join([random.choice('0123456789ABCDEF') for j in range(6)]))
-    return colors
-
-trace = go.Table(
-                header=dict(values=['Cuisine', 'Number of recipes'],
-                fill = dict(color=['#EABEB0']),
-                align = ['left']*5),
-                cells = dict(values=[train_data.cuisine.value_counts().index, train_data.cuisine.value_counts()],
-                align = ['left']*5))
-
-layout = go.Layout(title='Number of recipes in each cuisine category',
-                   titlefont = dict(size = 20),
-                   width = 500, height = 650,
-                   paper_bgcolor = 'rgba(0, 0, 0, 0)',
-                   plot_bgcolor = 'rgba(0, 0, 0, 0)',
-                   autosize = False,
-                   margin = dict(l=30, r=30, b=1, t=50, pad=1),)
-
-data = [trace]
-fig = dict(data=data, layout=layout)
-plot(fig)
 
 labelpercents = []
 for i in train_data.cuisine.value_counts():
@@ -272,7 +247,7 @@ for item in train_data['ingredients']:
         ingredients.append(ingr)
 
 # Fit the TfidfVectorizer to data
-tfidf = TfidfVectorizer(vocabulary=list(set([str(i).lower() for i in ingredients])), max_df=0.99, norm='12', ngram_range=(1, 4))
+tfidf = TfidfVectorizer(vocabulary=list(set([str(i).lower() for i in ingredients])), max_df=0.99, norm='l2', ngram_range=(1, 4))
 
 X_tr = tfidf.fit_transform([str(i) for i in features])
 feature_names = tfidf.get_feature_names()
@@ -297,11 +272,11 @@ def top_feats_by_class(trainsample, target, featurenames, min_tfidf=0.1, top_n=1
 
         ids = np.where(target==label)
         D = trainsample[ids].toarray()
-        D[D< min_tfidf] = 0
+        D[D < min_tfidf] = 0
         tfidf_means = np.nanmean(D, axis=0)
 
-        topn_ids = np.argsort(tfidf_means)[::-1][top_n]
-        top_feats = [(feature_names[i], tfidf_means[i]) for i in topn_ids]
+        topn_ids = np.argsort(tfidf_means)[::-1][:top_n]
+        top_feats = [(featurenames[i], tfidf_means[i]) for i in topn_ids]
         df = pd.DataFrame(top_feats)
         df.columns = ['feature', 'tfidf']
 
@@ -327,7 +302,7 @@ y = [[item]*2 for item in range(1,10)]
 y = list(chain.from_iterable(y))
 z = [1,2]*int((totalPlot/2))
 
-fig = tools.make_subplots(rows=5, cols=2, subplot_titles=labels[0:10], spec=[[{}, {}], [{}, {}], [{}, {}], [{}, {}], [{}, {}]], horizontal_spacing=0.20)
+fig = tools.make_subplots(rows=5, cols=2, subplot_titles=labels[0:10], specs=[[{}, {}], [{}, {}], [{}, {}], [{}, {}], [{}, {}]], horizontal_spacing=0.20)
 
 traces = []
 
@@ -340,10 +315,62 @@ for index, element in enumerate(result_tfidf[0:10]):
     traces.append(trace)
 
 for t, y, z in zip(traces, y, z):
-    fig.append(t, y, z)
+    fig.append_trace(t, y, z)
 
     fig['layout'].update(height=800, width=840,
     margin=dict(l=110, r=5, b=40, t=90, pad=5), showlegend=False, title='Feature Importance based on Tf-Idf measure')
 
 plot(fig)
 
+# processing training set
+features_processed = []
+for item in features:
+    newitem = []
+    for ingr in item:
+        ingr.lower()
+        ingr = re.sub("[^a-zA-Z]", " ", ingr) # remove punctuation, digits or special characters
+        ingr = re.sub((r'\b(oz|ounc|ounce|pound|lb|inch|inches|kg|to)\b'), ' ', ingr) # remove different units
+        newitem.append(ingr)
+    features_processed.append(newitem)
+
+# Test
+features_test = []
+for item in test_data['ingredients']:
+    features_test.append(item)
+
+features_test_processed = []
+
+for item in features_test:
+    newitem = []
+    for ingr in item:
+        ingr.lower()
+        ingr = re.sub("[^a-zA-Z]", " ", ingr)
+        ingr = re.sub((r'\b(oz|ounc|ounce|pound|lb|inch|inches|kg|to)\b'), ' ', ingr)
+        newitem.append(ingr)
+    features_test_processed.append(newitem)
+
+# Feature engineering
+vectorizer = CountVectorizer(analyzer='word',
+                             ngram_range = (1,1),
+                             binary = True,
+                             tokenizer = None,
+                             preprocessor = None,
+                             stop_words = None,
+                             max_df = 0.99)
+
+train_X = vectorizer.fit_transform([str(i) for i in features_processed])
+test_X = vectorizer.transform([str(i) for i in features_test_processed])
+
+lb = LabelEncoder()
+train_Y = lb.fit_transform(target)
+
+vclf = VotingClassifier(estimators=[('clf1', LogisticRegression(random_state=42)),
+                                    ('clf2', SVC(kernel='linear', random_state = 42, probability=True)),
+                                    ('clf3', RandomForestClassifier(n_estimators=600, random_state=42))],
+                                    voting='soft', weights=[1,1,1])
+
+vclf.fit(train_X, train_Y)
+kfold = model_selection.KFold(n_splits=10, random_state=42)
+valscores = model_selection.cross_val_score(vclf, train_X, train_Y, cv=kfold)
+
+print('Mean accuracy on 10-fold cross validation: ' + str(np.mean(valscores)))
