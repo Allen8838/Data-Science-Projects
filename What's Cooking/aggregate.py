@@ -261,3 +261,89 @@ for t, y, z in zip(traces, y, z):
 
 plot(fig)
 
+# TF-IDF
+features = []
+for item in train_data['ingredients']:
+    features.append(item)
+
+ingredients = []
+for item in train_data['ingredients']:
+    for ingr in item:
+        ingredients.append(ingr)
+
+# Fit the TfidfVectorizer to data
+tfidf = TfidfVectorizer(vocabulary=list(set([str(i).lower() for i in ingredients])), max_df=0.99, norm='12', ngram_range=(1, 4))
+
+X_tr = tfidf.fit_transform([str(i) for i in features])
+feature_names = tfidf.get_feature_names()
+
+def top_feats_by_class(trainsample, target, featurenames, min_tfidf=0.1, top_n=10):
+    '''
+    Input:
+        trainsample - the tf-idf transformed training sample
+        target - the target variable
+        featurenames - 
+        min_tfidf - features having tf-idf value below the min_tfidf will be excluded
+        top_n - how many important features to show
+    
+    Output:
+        Returns a list of dataframe objects, where each dataframe holds top_n features and their mean tfidf value
+        calculated across documents (recipes) with the same class label (cuisine)
+    '''
+    dfs = []
+    labels = np.unique(target)
+
+    for label in labels:
+
+        ids = np.where(target==label)
+        D = trainsample[ids].toarray()
+        D[D< min_tfidf] = 0
+        tfidf_means = np.nanmean(D, axis=0)
+
+        topn_ids = np.argsort(tfidf_means)[::-1][top_n]
+        top_feats = [(feature_names[i], tfidf_means[i]) for i in topn_ids]
+        df = pd.DataFrame(top_feats)
+        df.columns = ['feature', 'tfidf']
+
+        df['cuisine'] = label
+        dfs.append(df)
+
+    return dfs
+
+target = train_data['cuisine']
+
+result_tfidf = top_feats_by_class(X_tr, target, feature_names, min_tfidf=0.1, top_n=5)
+
+
+# Feature importance according to Tf-Idf measure
+labels = []
+
+for i, e in enumerate(result_tfidf):
+    labels.append(result_tfidf[i].cuisine[0])
+
+# set the plot
+totalPlot = 10
+y = [[item]*2 for item in range(1,10)]
+y = list(chain.from_iterable(y))
+z = [1,2]*int((totalPlot/2))
+
+fig = tools.make_subplots(rows=5, cols=2, subplot_titles=labels[0:10], spec=[[{}, {}], [{}, {}], [{}, {}], [{}, {}], [{}, {}]], horizontal_spacing=0.20)
+
+traces = []
+
+for index, element in enumerate(result_tfidf[0:10]):
+    trace = go.Bar(
+            x = result_tfidf[index].tfidf[::-1],
+            y = result_tfidf[index].feature[::-1],
+            orientation = 'h', marker = dict(color = random_colours(5),))
+
+    traces.append(trace)
+
+for t, y, z in zip(traces, y, z):
+    fig.append(t, y, z)
+
+    fig['layout'].update(height=800, width=840,
+    margin=dict(l=110, r=5, b=40, t=90, pad=5), showlegend=False, title='Feature Importance based on Tf-Idf measure')
+
+plot(fig)
+
