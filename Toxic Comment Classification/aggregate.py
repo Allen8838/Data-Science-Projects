@@ -1,3 +1,5 @@
+# from https://www.kaggle.com/sbongo/for-beginners-tackling-toxic-using-keras
+
 import sys, os, re, csv, codecs, numpy as np, pandas as pd
 import matplotlib.pyplot as plt
 from keras.preprocessing.text import Tokenizer
