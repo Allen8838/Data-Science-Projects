@@ -128,6 +128,11 @@ new_corr = cramers_corrected_stat(confusion_matrix)
 
 # indirect features
 merge = pd.concat([train.iloc[:,0:2], test.iloc[:,0:2]])
+# merge will look like
+# 0         0000997932d777bf      Explanation\nWhy the edits made under my usern...
+# 1         000103f0d9cfb60f      D'aww! He matches this background colour I'm s...
+# where the last row in the dataframe has an index of 153,163
+
 df = merge.reset_index(drop=True)
 
 df['count_sent'] = df['comment_text'].apply(lambda x: len(re.findall("\n", str(x)))+1)
@@ -267,4 +272,213 @@ plt.title("Common IP addresses")
 venn.venn2(subsets=(len(train_ip_list), len(test_ip_list), len(common_ip_list)), set_labels=('# of unique IP in train', "# of unique IP in test"))
 
 plt.savefig("Common IP addresses.png")
+
+
+train_links = leaky_feats_train.link[leaky_feats_train.count_links != 0]
+
+test_links = leaky_feats_test.link[leaky_feats_test.count_links != 0]
+
+train_links_list = list(set([a for b in train_links.tolist() for a in b]))
+test_links_list = list(set([a for b in test_links.tolist() for a in b]))
+
+common_links_list = list(set(train_links_list).intersection(test_links_list))
+
+plt.title("Common links")
+plt.savefig("Common links.png")
+
+venn.venn2(subsets=(len(train_links_list), len(test_links_list), len(common_links_list)), 
+           set_labels=('# of unique links in train', "# of unique links in test"))
+
+plt.title("Common links where entries without links removed")
+
+plt.savefig("Common links where entries without links removed.png")
+
+# filter out entries without users
+train_users = leaky_feats_train.username[leaky_feats_train.count_usernames != 0]
+
+test_users = leaky_feats_test.username[leaky_feats_test.count_usernames != 0]
+
+train_users_list = list(set([a for b in train_users.tolist() for a in b]))
+test_users_list = list(set([a for b in test_users.tolist() for a in b]))
+
+common_users_list = list(set(train_users_list).intersection(test_users_list))
+plt.title("Common usernames")
+venn.venn2(subsets=(len(train_users_list), len(test_users_list), len(common_users_list)), 
+           set_labels=("# of unique Usernames in train", "# of unique usernames in test"))
+
+
+plt.savefig("Common usernames.png")
+
+corpus = merge.comment_text
+# corpus will look like
+# 0         Explanation\nWhy the edits made under my usern...
+# 1         D'aww! He matches this background colour I'm s...
+# where the last row is 153,163
+
+APPO = {
+"aren't" : "are not",
+"can't" : "cannot",
+"couldn't" : "could not",
+"didn't" : "did not",
+"doesn't" : "does not",
+"don't" : "do not",
+"hadn't" : "had not",
+"hasn't" : "has not",
+"haven't" : "have not",
+"he'd" : "he would",
+"he'll" : "he will",
+"he's" : "he is",
+"i'd" : "I would",
+"i'd" : "I had",
+"i'll" : "I will",
+"i'm" : "I am",
+"isn't" : "is not",
+"it's" : "it is",
+"it'll":"it will",
+"i've" : "I have",
+"let's" : "let us",
+"mightn't" : "might not",
+"mustn't" : "must not",
+"shan't" : "shall not",
+"she'd" : "she would",
+"she'll" : "she will",
+"she's" : "she is",
+"shouldn't" : "should not",
+"that's" : "that is",
+"there's" : "there is",
+"they'd" : "they would",
+"they'll" : "they will",
+"they're" : "they are",
+"they've" : "they have",
+"we'd" : "we would",
+"we're" : "we are",
+"weren't" : "were not",
+"we've" : "we have",
+"what'll" : "what will",
+"what're" : "what are",
+"what's" : "what is",
+"what've" : "what have",
+"where's" : "where is",
+"who'd" : "who would",
+"who'll" : "who will",
+"who're" : "who are",
+"who's" : "who is",
+"who've" : "who have",
+"won't" : "will not",
+"wouldn't" : "would not",
+"you'd" : "you would",
+"you'll" : "you will",
+"you're" : "you are",
+"you've" : "you have",
+"'re": " are",
+"wasn't": "was not",
+"we'll":" will",
+"didn't": "did not",
+"tryin'":"trying"
+}
+
+def clean(comment):
+    """
+    This function receives comments and returns clean word-list
+    """
+    # convert to lower case, so that Hi and hi are the same
+    comment = comment.lower()
+    # remove \n
+    comment = re.sub("\\n", "", comment)
+    # remove leaky elements like ip, user
+    comment = re.sub("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", '', comment)
+    # removing usernames
+    comment = re.sub("\[\[.*\]", "", comment)
+
+    words = tokenizer.tokenize(comment)
+
+    # (') apostrophe replacement ie you're --> you are
+    words = [APPO[word] if word in APPO else word for word in words]
+    words = [lem.lemmatize(word, "v") for word in words]
+    words = [w for w in words if not w in eng_stopwords]
+
+    clean_sent = " ".join(words)
+    return(clean_sent)
+
+clean_corpus = corpus.apply(lambda x: clean(x))
+
+tfv = TfidfVectorizer(min_df=200, max_features=10000,
+           strip_accents='unicode', analyzer='word', ngram_range=(1,1),
+           use_idf=1,smooth_idf=1, sublinear_tf=1,
+           stop_words = 'english')
+
+tfv.fit(clean_corpus)
+
+features = np.array(tfv.get_feature_names())
+
+train_unigrams = tfv.transform(clean_corpus.iloc[:train.shape[0]])
+test_unigrams = tfv.transform(clean_corpus.iloc[train.shape[0]:])
+
+def top_tfidf_feats(row, features, top_n=25):
+    """
+    Get top n tfidf values in row and return them with their corresponding feature names
+    """
+    topn_ids = np.argsort(row)[::-1][:top_n]
+    top_feats = [(features[i], row[i]) for i in topn_ids]
+    df = pd.DataFrame(top_feats)
+    df.columns = ['feature', 'tfidf']
+    return df
+
+def top_feats_in_doc(Xtr, features, row_id, top_n=25):
+    """
+    Top tfidf features in specific document (matrix row)
+    """
+    row = np.squeeze(Xtr[row_id].toarray())
+    return top_tfidf_feats(row, features, top_n)
+
+def top_mean_feats(Xtr, features, grp_ids, min_tfidf=0.1, top_n=25):
+    """
+    Return the top n features that on average are most important amongst 
+    documents in rows identified by indices in grp_ids
+    """
+    D = Xtr[grp_ids].toarray()
+    D[D<min_tfidf] = 0
+    tfidf_means = np.mean(D, axis=0)
+    return top_tfidf_feats(tfidf_means, features, top_n)
+
+def top_feats_by_class(Xtr, features, min_tfidf=0.1, top_n=20):
+    """
+    Return a list of dfs, where each df holds top_n features and their mean tfidf value
+    calculated across documents with the same class label
+    """
+    dfs = []
+    cols = train_tags.columns
+    for col in cols:
+        ids = train_tags.index[train_tags[col]==1]
+        feats_df = top_mean_feats(Xtr, features, ids, min_tfidf=min_tfidf, top_n=top_n)
+        feats_df.label = label
+        dfs.append(feats_df)
+    return dfs
+
+
+tfidf_top_n_per_lass = top_feats_by_class(train_unigrams, features)
+
+tfv = TfidfVectorizer(min_df=150, max_features=30000,
+            strip_accents='unicode', analyzer='word', ngram_range=(2,2),
+            use_idf=1, smooth_idf=1, sublinear_tf=1,
+            stop_words='english')
+
+tfv.fit(clean_corpus)
+features = np.array(tfv.get_feature_names())
+train_bigrams = tfv.transform(clean_corpus.iloc[:train.shape[0]])
+test_bigrams = tfv.transform(clean_corpus.iloc[train.shape[0]:])
+
+tfidf_top_n_per_lass = top_feats_by_class(train_bigrams, features)
+
+tfv = TfidfVectorizer(min_df=100, max_features=30000,
+            strip_accents='unicode', analyzer='char', ngram_range=(1,4),
+            use_idf=1, smooth_idf=1, sublinear_tf=1,
+            stop_words= 'english')
+
+tfv.fit(clean_corpus)
+features = np.array(tfv.get_feature_names())
+train_charngrams = tfv.transform(clean_corpus.iloc[:train.shape[0]])
+test_charngrams = tfv.transform(clean_corpus.iloc[train.shape[0]:])
+
+
 
