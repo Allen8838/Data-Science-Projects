@@ -227,3 +227,44 @@ plt.xlabel('Threat class', fontsize=12)
 plt.ylabel('# of comments', fontsize=12)
 plt.savefig('Uniqueness.png')
 
+# Leaky features
+df['ip'] = df['comment_text'].apply(lambda x: re.findall('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', str(x)))
+
+# count of ip addresses
+df['count_ip'] = df['ip'].apply(lambda x: len(x))
+
+df['link'] = df['comment_text'].apply(lambda x: re.findall("http://.*com", str(x)))
+
+df["count_links"] = df['link'].apply(lambda x: len(x))
+
+df['article_id'] = df['comment_text'].apply(lambda x: re.findall("\d:\d\d\s{0,5}$", str(x)))
+
+df['article_id_flag'] = df.article_id.apply(lambda x: len(x))
+
+df['username'] = df['comment_text'].apply(lambda x: re.findall("\[\[User(.*)\|", str(x)))
+
+df['count_usernames'] = df['username'].apply(lambda x: len(x))
+
+cv = CountVectorizer()
+count_feats_ip = cv.fit_transform(df['ip'].apply(lambda x: str(x)))
+
+leaky_feats = df[['ip', 'link', 'article_id', 'username', 'count_ip', 'count_links', 'count_usernames', 'article_id_flag']]
+
+leaky_feats_train = leaky_feats.iloc[:train.shape[0]]
+
+leaky_feats_test = leaky_feats.iloc[train.shape[0]:]
+
+# filterout the entries without ips
+train_ips = leaky_feats_train.ip[leaky_feats_train.count_ip != 0]
+test_ips = leaky_feats_test.ip[leaky_feats_test.count_ip != 0]
+
+train_ip_list = list(set([a for b in train_ips.tolist() for a in b]))
+test_ip_list = list(set([a for b in test_ips.tolist() for a in b]))
+
+common_ip_list = list(set(train_ip_list).intersection(test_ip_list))
+
+plt.title("Common IP addresses")
+venn.venn2(subsets=(len(train_ip_list), len(test_ip_list), len(common_ip_list)), set_labels=('# of unique IP in train', "# of unique IP in test"))
+
+plt.savefig("Common IP addresses.png")
+
