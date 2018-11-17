@@ -480,5 +480,71 @@ features = np.array(tfv.get_feature_names())
 train_charngrams = tfv.transform(clean_corpus.iloc[:train.shape[0]])
 test_charngrams = tfv.transform(clean_corpus.iloc[train.shape[0]:])
 
+class NbSvmClassifier(BaseEstimator, ClassifierMixin):
+    def __init__(self, C=1.0, dual=False, n_jobs=1):
+        self.C = C
+        self.dual = dual
+        self.n_jobs = n_jobs
+    
+    def predict(self, x):
+        check_is_fitted(self, ['r', '_clf'])
+        return self._clf.predict(x.multiply(self._r))
+
+    def predict_proba(self, x):
+        check_is_fitted(self, ['_r', '_clf'])
+        return self._clf.predict_proba(x.multiply(self._r))
+    
+    def fit(self, x, y):
+        y = y.values
+        x, y = check_X_y(x, y, accept_sparse=True)
+
+        def pr(x, y_i, y):
+            p = x[y==y_i].sum(0)
+            return (p+1)/((y==y_i).sum()+1)
+        
+        self._r = sparse.csr_matrix(np.log(pr(x,1,y)/pr(x,0,y)))
+        x_nb = x.multiply(self._r)
+        self._clf = LogisticRegression(C=self.C, dual=self.dual, n_jobs=self.n_jobs).fit(x_nb, y)
+    
+        return self
+
+SELECTED_COLS = ['count_sent', 'count_word', 'count_unique_word', 
+                'count_letters', 'count_punctuations',
+                'count_words_title', 'count_stopwords', 'mean_word_len',
+                'word_unique_percent', 'punct_percent']
+
+target_x = train_feats[SELECTED_COLS]
+
+TARGET_COLS = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
+target_y = train_tags[TARGET_COLS]
+
+print('Using only Indirect features')
+
+model = LogisticRegression(C=3)
+X_train, X_valid, y_train, y_valid = train_test_split(target_x, target_y, test_size=0.33, random_state=2018)
+
+train_loss = []
+valid_loss = []
+importance = []
+
+preds_train = np.zeros((X_train.shape[0], len(y_train)))
+preds_valid = np.zeros((X_valid.shape[0], len(y_valid)))
+
+for i, j in enumerate(TARGET_COLS):
+    print("Class:= "+j)
+    model.fit(X_train, y_train[j])
+    preds_valid[:,i] = model.predict_proba(X_valid)[:,1]
+    preds_train[:,i] = model.predict_proba(X_train)[:,1]
+    train_loss_class = log_loss(y_train[j], preds_train[:,i])
+    valid_loss_class = log_loss(y_valid[j], preds_valid[:,i])
+    print('Trainloss=log loss:', train_loss_class)
+    print('Validloss=log loss:', valid_loss_class)
+    importance.append(model.coef_)
+    train_loss.append(train_loss_class)
+    valid_loss.append(valid_loss_class)
+print('mean column-wise log loss: Train dataset', np.mean(train_loss))
+print('mean column-wise log loss:Validation dataset', np.mean(valid_loss))
+
+
 
 
