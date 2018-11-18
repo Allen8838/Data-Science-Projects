@@ -16,3 +16,14 @@ df['num_unique_words'] = df['comment_text'].apply(lambda comment: len(set(w for 
 df['words_vs_unique'] = df['num_unique_words']/df['num_words']
 df['num_smiles'] = df['comment_text'].apply(lambda comment: sum(comment.count(w) for w in (':-)', ':)', ';-)', ';)')))
 
+features = ('total_length', 'capitals', 'caps_vs_length', 'num_exclamation_marks', 
+            'num_question_marks', 'num_punctuation', 'num_symbols', 'num_words',
+            'num_unique_words', 'words_vs_unique', 'num_smiles')
+
+columns = ('toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate')
+
+rows = [{c:df[f].corr(df[c]) for c in columns} for f in features]
+
+df_correlations = pd.DataFrame(rows, index=features)
+
+print(df_correlations)
